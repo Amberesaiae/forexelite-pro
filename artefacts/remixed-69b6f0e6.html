@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ForexElite Pro — Institutional Trading Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8C97A;
+    --gold-dim: #7A6130;
+    --bg-deep: #04080F;
+    --bg-card: #080E1A;
+    --bg-panel: #0C1424;
+    --bg-border: #141E30;
+    --text-primary: #EEF2FF;
+    --text-secondary: #8899BB;
+    --text-dim: #445577;
+    --green: #00E5A0;
+    --green-dim: #00704E;
+    --red: #FF4560;
+    --red-dim: #7A1F2E;
+    --blue: #3D85FF;
+    --nav-h: 56px;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg-deep); color: var(--text-primary); overflow-x: hidden; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg-deep); }
+  ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+
+  /* ── NOISE ── */
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events:none; z-index:9999; opacity:0.3;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:1000;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 24px; height:var(--nav-h);
+    background:rgba(4,8,15,0.95); backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--bg-border);
+  }
+  .nav-logo { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:3px; color:var(--gold); text-decoration:none; flex-shrink:0; }
+  .nav-logo span { color:var(--text-primary); }
+
+  .nav-links { display:flex; gap:24px; list-style:none; }
+  .nav-links a { font-size:11px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-secondary); text-decoration:none; transition:color .2s; cursor:pointer; white-space:nowrap; }
+  .nav-links a:hover { color:var(--gold); }
+  .nav-cta { background:var(--gold) !important; color:var(--bg-deep) !important; padding:7px 16px; border-radius:4px; font-weight:700 !important; }
+  .nav-cta:hover { background:var(--gold-light) !important; }
+
+  /* hamburger */
+  .nav-hamburger { display:none; flex-direction:column; gap:5px; cursor:pointer; padding:4px; background:none; border:none; }
+  .nav-hamburger span { display:block; width:22px; height:2px; background:var(--text-secondary); border-radius:2px; transition:all .3s; }
+  .nav-hamburger.open span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
+  .nav-hamburger.open span:nth-child(2) { opacity:0; }
+  .nav-hamburger.open span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
+
+  .nav-drawer {
+    position:fixed; top:var(--nav-h); left:0; right:0; z-index:999;
+    background:rgba(4,8,15,0.98); backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--bg-border);
+    padding:0 24px; max-height:0; overflow:hidden; transition:max-height .35s ease, padding .35s ease;
+  }
+  .nav-drawer.open { max-height:420px; padding:16px 24px; }
+  .nav-drawer ul { list-style:none; display:flex; flex-direction:column; gap:4px; }
+  .nav-drawer ul li a { display:block; padding:10px 0; font-size:13px; font-weight:500; letter-spacing:1px; text-transform:uppercase; color:var(--text-secondary); cursor:pointer; border-bottom:1px solid var(--bg-border); }
+  .nav-drawer ul li:last-child a { border:none; }
+  .nav-drawer .drawer-cta { margin-top:12px; }
+  .nav-drawer .drawer-cta button { width:100%; background:var(--gold); color:var(--bg-deep); border:none; padding:12px; font-weight:700; font-size:13px; letter-spacing:2px; text-transform:uppercase; border-radius:4px; cursor:pointer; }
+
+  /* ── HERO ── */
+  .hero {
+    min-height:100svh; display:flex; flex-direction:column; justify-content:center;
+    padding:calc(var(--nav-h) + 40px) 24px 60px;
+    position:relative; overflow:hidden;
+  }
+  .hero-grid {
+    position:absolute; inset:0;
+    background-image:linear-gradient(rgba(201,168,76,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,.04) 1px,transparent 1px);
+    background-size:60px 60px; animation:gridMove 20s linear infinite;
+  }
+  @keyframes gridMove { 0%{transform:translateY(0)} 100%{transform:translateY(60px)} }
+  .hero-glow  { position:absolute; width:min(600px,80vw); height:min(600px,80vw); background:radial-gradient(circle,rgba(201,168,76,.12) 0%,transparent 70%); top:-100px; right:-100px; border-radius:50%; }
+  .hero-glow2 { position:absolute; width:min(400px,60vw); height:min(400px,60vw); background:radial-gradient(circle,rgba(61,133,255,.08) 0%,transparent 70%); bottom:0; left:100px; border-radius:50%; }
+  .hero-content { position:relative; max-width:1200px; margin:0 auto; width:100%; }
+  .hero-tag {
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:10px; letter-spacing:2.5px; text-transform:uppercase; color:var(--gold);
+    font-family:'JetBrains Mono',monospace; margin-bottom:20px;
+    padding:6px 12px; border:1px solid var(--gold-dim); border-radius:2px;
+    animation:fadeUp .8s ease forwards; opacity:0;
+  }
+  .hero-tag::before { content:''; width:6px; height:6px; background:var(--green); border-radius:50%; animation:pulse 2s infinite; flex-shrink:0; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+  .hero h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(52px,10vw,120px); line-height:.9; letter-spacing:2px; margin-bottom:20px; animation:fadeUp .8s .1s ease forwards; opacity:0; }
+  .hero h1 .gold { color:var(--gold); }
+  .hero-sub { font-size:clamp(13px,2vw,16px); color:var(--text-secondary); max-width:560px; line-height:1.7; margin-bottom:40px; font-weight:300; animation:fadeUp .8s .2s ease forwards; opacity:0; }
+  .hero-actions { display:flex; gap:12px; flex-wrap:wrap; animation:fadeUp .8s .3s ease forwards; opacity:0; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+  .btn-primary { background:var(--gold); color:var(--bg-deep); border:none; padding:13px 28px; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; border-radius:4px; cursor:pointer; transition:all .2s; }
+  .btn-primary:hover { background:var(--gold-light); transform:translateY(-2px); box-shadow:0 8px 24px rgba(201,168,76,.3); }
+  .btn-secondary { background:transparent; color:var(--text-primary); border:1px solid var(--bg-border); padding:13px 28px; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; border-radius:4px; cursor:pointer; transition:all .2s; }
+  .btn-secondary:hover { border-color:var(--gold-dim); color:var(--gold); }
+
+  /* ── TICKER ── */
+  .ticker-bar { background:var(--bg-panel); border-top:1px solid var(--bg-border); border-bottom:1px solid var(--bg-border); overflow:hidden; padding:11px 0; }
+  .ticker-inner { display:flex; gap:40px; animation:tickerScroll 30s linear infinite; white-space:nowrap; }
+  @keyframes tickerScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  .ticker-item { display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:11px; }
+  .ticker-pair { color:var(--text-primary); font-weight:600; }
+  .ticker-price { color:var(--text-secondary); }
+  .ticker-change.up { color:var(--green); }
+  .ticker-change.down { color:var(--red); }
+
+  /* ── SECTION LAYOUT ── */
+  .section { padding:60px 24px; max-width:1400px; margin:0 auto; }
+  .section-full { padding:60px 0; }
+  .section-inner { max-width:1400px; margin:0 auto; padding:0 24px; }
+  .section-label { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--gold); margin-bottom:10px; }
+  .section-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(32px,6vw,64px); line-height:1; letter-spacing:1px; margin-bottom:14px; }
+  .section-desc { font-size:14px; color:var(--text-secondary); max-width:560px; line-height:1.7; font-weight:300; }
+  .section-header { margin-bottom:40px; }
+  .divider { height:1px; background:var(--bg-border); max-width:100%; }
+
+  /* ── STATS ── */
+  .stats-row { display:grid; grid-template-columns:repeat(6,1fr); gap:1px; background:var(--bg-border); border:1px solid var(--bg-border); border-radius:8px; overflow:hidden; margin-bottom:0; }
+  .stat-item { background:var(--bg-card); padding:24px 16px; text-align:center; }
+  .stat-value { font-family:'Bebas Neue',sans-serif; font-size:clamp(28px,4vw,44px); letter-spacing:1px; color:var(--gold); line-height:1; margin-bottom:6px; }
+  .stat-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-dim); font-family:'JetBrains Mono',monospace; }
+
+  /* ── SIGNAL ── */
+  .signal-section { background:var(--bg-panel); border-top:1px solid var(--bg-border); border-bottom:1px solid var(--bg-border); }
+  .signal-grid { display:grid; grid-template-columns:280px 1fr; gap:0; border:1px solid var(--bg-border); border-radius:8px; overflow:hidden; background:var(--bg-card); min-height:460px; }
+  .signal-controls { padding:24px; border-right:1px solid var(--bg-border); display:flex; flex-direction:column; gap:16px; background:var(--bg-deep); }
+  .signal-controls h3 { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:2px; color:var(--gold); }
+  .ctrl-group { display:flex; flex-direction:column; gap:6px; }
+  .ctrl-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-dim); font-family:'JetBrains Mono',monospace; }
+  .ctrl-select, .ctrl-input { background:var(--bg-panel); border:1px solid var(--bg-border); color:var(--text-primary); padding:9px 12px; font-family:'JetBrains Mono',monospace; font-size:12px; border-radius:4px; cursor:pointer; transition:border-color .2s; width:100%; appearance:none; }
+  .ctrl-select:hover, .ctrl-input:focus { border-color:var(--gold-dim); outline:none; }
+  .strategy-pills { display:flex; flex-wrap:wrap; gap:5px; }
+  .strategy-pill { padding:5px 10px; font-size:10px; font-weight:500; border-radius:2px; border:1px solid var(--bg-border); color:var(--text-secondary); cursor:pointer; transition:all .2s; background:transparent; font-family:'DM Sans',sans-serif; }
+  .strategy-pill.active { border-color:var(--gold); color:var(--gold); background:rgba(201,168,76,.08); }
+  .generate-btn { background:var(--gold); color:var(--bg-deep); border:none; padding:11px; font-family:'DM Sans',sans-serif; font-weight:700; font-size:11px; letter-spacing:2px; text-transform:uppercase; border-radius:4px; cursor:pointer; transition:all .2s; margin-top:auto; }
+  .generate-btn:hover { background:var(--gold-light); }
+  .signal-output { padding:20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; }
+  .signal-card { border:1px solid var(--bg-border); border-radius:6px; padding:16px; display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; transition:border-color .2s; animation:slideIn .3s ease; }
+  @keyframes slideIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+  .signal-card:hover { border-color:var(--gold-dim); }
+  .signal-card.buy { border-left:3px solid var(--green); }
+  .signal-card.sell { border-left:3px solid var(--red); }
+  .signal-direction { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; flex-shrink:0; }
+  .signal-direction.buy { background:rgba(0,229,160,.1); color:var(--green); }
+  .signal-direction.sell { background:rgba(255,69,96,.1); color:var(--red); }
+  .signal-info { display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .signal-pair { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px; }
+  .signal-strategy { font-size:10px; color:var(--gold); font-family:'JetBrains Mono',monospace; letter-spacing:1px; }
+  .signal-meta { font-size:10px; color:var(--text-secondary); font-family:'JetBrains Mono',monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .signal-levels { text-align:right; display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+  .level-row { display:flex; align-items:center; gap:6px; justify-content:flex-end; font-family:'JetBrains Mono',monospace; font-size:11px; }
+  .level-tag { font-size:8px; letter-spacing:1.5px; text-transform:uppercase; padding:2px 5px; border-radius:2px; }
+  .level-tag.entry { background:rgba(61,133,255,.15); color:var(--blue); }
+  .level-tag.sl { background:rgba(255,69,96,.15); color:var(--red); }
+  .level-tag.tp { background:rgba(0,229,160,.15); color:var(--green); }
+  .level-tag.tf { background:rgba(201,168,76,.15); color:var(--gold); }
+  .signal-strength { display:flex; gap:3px; align-items:center; justify-content:flex-end; }
+  .strength-dot { width:5px; height:5px; border-radius:50%; background:var(--bg-border); }
+  .strength-dot.active { background:var(--gold); }
+  .no-signal { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:10px; color:var(--text-dim); padding:40px 20px; text-align:center; }
+  .no-signal-icon { font-size:40px; opacity:.3; }
+
+  /* ── SESSIONS ── */
+  .sessions-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:28px; }
+  .session-card { background:var(--bg-card); border:1px solid var(--bg-border); border-radius:8px; padding:18px; position:relative; overflow:hidden; }
+  .session-card.active { border-color:var(--green-dim); }
+  .session-card.active::after { content:''; position:absolute; top:0; left:0; width:100%; height:2px; background:var(--green); }
+  .session-name { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px; margin-bottom:4px; }
+  .session-time { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-secondary); margin-bottom:10px; }
+  .session-pairs { font-size:10px; color:var(--text-dim); font-family:'JetBrains Mono',monospace; line-height:1.6; }
+  .session-live { display:inline-flex; align-items:center; gap:5px; font-size:9px; color:var(--green); font-family:'JetBrains Mono',monospace; letter-spacing:1px; margin-top:10px; }
+  .session-live::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+
+  /* ── RISK ── */
+  .risk-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px; margin-top:36px; }
+  .risk-card { background:var(--bg-card); border:1px solid var(--bg-border); border-radius:8px; padding:24px; }
+  .risk-card h3 { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px; color:var(--gold); margin-bottom:18px; }
+  .calc-field { margin-bottom:12px; }
+  .calc-field label { display:block; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-dim); font-family:'JetBrains Mono',monospace; margin-bottom:5px; }
+  .calc-field input, .calc-field select { width:100%; background:var(--bg-panel); border:1px solid var(--bg-border); color:var(--text-primary); padding:9px 12px; font-family:'JetBrains Mono',monospace; font-size:12px; border-radius:4px; transition:border-color .2s; appearance:none; }
+  .calc-field input:focus, .calc-field select:focus { border-color:var(--gold-dim); outline:none; }
+  .calc-result { background:rgba(201,168,76,.05); border:1px solid var(--gold-dim); border-radius:4px; padding:14px; margin-top:14px; }
+  .calc-result-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-dim); font-family:'JetBrains Mono',monospace; margin-bottom:4px; }
+  .calc-result-value { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:1px; color:var(--gold); }
+  .calc-btn { width:100%; background:var(--gold); color:var(--bg-deep); border:none; padding:11px; font-family:'DM Sans',sans-serif; font-weight:700; font-size:11px; letter-spacing:2px; text-transform:uppercase; border-radius:4px; cursor:pointer; transition:all .2s; margin-top:6px; }
+  .calc-btn:hover { background:var(--gold-light); }
+
+  /* ── LIBRARY ── */
+  .library-tabs { display:flex; gap:0; border-bottom:1px solid var(--bg-border); margin-bottom:36px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .library-tabs::-webkit-scrollbar { display:none; }
+  .lib-tab { padding:11px 20px; font-size:11px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-secondary); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .2s; white-space:nowrap; background:none; border-top:none; border-left:none; border-right:none; font-family:'DM Sans',sans-serif; flex-shrink:0; }
+  .lib-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+  .lib-tab:hover { color:var(--text-primary); }
+  .lib-content { display:none; }
+  .lib-content.active { display:block; }
+  .strategy-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; }
+  .strat-card { background:var(--bg-card); border:1px solid var(--bg-border); border-radius:8px; padding:22px; cursor:pointer; transition:all .25s; position:relative; overflow:hidden; }
+  .strat-card::before { content:''; position:absolute; top:0; left:0; width:3px; height:100%; background:var(--gold); transform:scaleY(0); transition:transform .25s; transform-origin:bottom; }
+  .strat-card:hover { border-color:var(--gold-dim); transform:translateY(-3px); box-shadow:0 10px 32px rgba(0,0,0,.4); }
+  .strat-card:hover::before { transform:scaleY(1); }
+  .strat-badge { display:inline-block; padding:3px 9px; font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; border-radius:2px; margin-bottom:12px; font-family:'JetBrains Mono',monospace; }
+  .badge-smc  { background:rgba(201,168,76,.12); color:var(--gold); }
+  .badge-price{ background:rgba(61,133,255,.12);  color:var(--blue); }
+  .badge-sr   { background:rgba(0,229,160,.12);   color:var(--green); }
+  .badge-pa   { background:rgba(255,69,96,.12);   color:var(--red); }
+  .badge-fund { background:rgba(139,92,246,.12);  color:#A78BFA; }
+  .badge-mm   { background:rgba(236,72,153,.12);  color:#F472B6; }
+  .strat-title { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px; margin-bottom:8px; }
+  .strat-desc  { font-size:12px; color:var(--text-secondary); line-height:1.6; margin-bottom:14px; }
+  .strat-tags  { display:flex; flex-wrap:wrap; gap:5px; }
+  .strat-tag   { padding:2px 7px; font-size:9px; color:var(--text-dim); border:1px solid var(--bg-border); border-radius:2px; font-family:'JetBrains Mono',monospace; }
+  .strat-expand { display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--bg-border); }
+  .strat-expand.open { display:block; }
+  .strat-expand-title { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); font-family:'JetBrains Mono',monospace; margin-bottom:8px; margin-top:12px; }
+  .strat-rules { list-style:none; display:flex; flex-direction:column; gap:5px; }
+  .strat-rules li { font-size:11px; color:var(--text-secondary); font-family:'JetBrains Mono',monospace; padding-left:14px; position:relative; line-height:1.5; }
+  .strat-rules li::before { content:'→'; position:absolute; left:0; color:var(--gold); }
+
+  /* ── EA GENERATOR ── */
+  .ea-container { background:var(--bg-card); border:1px solid var(--bg-border); border-radius:8px; overflow:hidden; }
+  .ea-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; background:var(--bg-deep); border-bottom:1px solid var(--bg-border); gap:12px; }
+  .ea-header-left { display:flex; align-items:center; gap:10px; min-width:0; }
+  .ea-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .ea-dot.red { background:#FF5F57; } .ea-dot.yellow { background:#FEBC2E; } .ea-dot.green { background:#28C840; }
+  .ea-filename { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ea-controls { display:flex; gap:10px; padding:16px 20px; border-bottom:1px solid var(--bg-border); flex-wrap:wrap; background:var(--bg-panel); align-items:center; }
+  .ea-controls select { background:var(--bg-card); border:1px solid var(--bg-border); color:var(--text-primary); padding:8px 12px; font-family:'JetBrains Mono',monospace; font-size:11px; border-radius:4px; cursor:pointer; appearance:none; max-width:100%; }
+  .ea-gen-btn { background:var(--gold); color:var(--bg-deep); border:none; padding:8px 18px; font-family:'DM Sans',sans-serif; font-weight:700; font-size:10px; letter-spacing:2px; text-transform:uppercase; border-radius:4px; cursor:pointer; transition:all .2s; flex-shrink:0; }
+  .ea-gen-btn:hover { background:var(--gold-light); }
+  .ea-code { padding:20px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.7; color:var(--text-secondary); max-height:420px; overflow-y:auto; background:var(--bg-deep); white-space:pre; tab-size:3; overflow-x:auto; }
+  .code-keyword{color:#FF79C6} .code-type{color:#8BE9FD} .code-string{color:#F1FA8C} .code-comment{color:#6272A4;font-style:italic} .code-number{color:#BD93F9} .code-func{color:#50FA7B} .code-var{color:var(--gold)}
+  .copy-btn { background:var(--bg-panel); color:var(--text-secondary); border:1px solid var(--bg-border); padding:7px 14px; font-family:'JetBrains Mono',monospace; font-size:10px; border-radius:4px; cursor:pointer; transition:all .2s; flex-shrink:0; }
+  .copy-btn:hover { border-color:var(--gold-dim); color:var(--gold); }
+
+  /* ── BROKER ── */
+  .broker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; margin-bottom:36px; }
+  .broker-card { background:var(--bg-card); border:1px solid var(--bg-border); border-radius:8px; padding:18px; text-align:center; cursor:pointer; transition:all .25s; position:relative; }
+  .broker-card.connected { border-color:var(--green-dim); background:rgba(0,229,160,.03); }
+  .broker-card:hover { border-color:var(--gold-dim); transform:translateY(-2px); }
+  .broker-logo { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:2px; margin-bottom:6px; }
+  .broker-status { font-size:9px; letter-spacing:1.5px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }
+  .broker-status.connected { color:var(--green); } .broker-status.disconnected { color:var(--text-dim); }
+  .broker-badge { position:absolute; top:10px; right:10px; width:7px; height:7px; border-radius:50%; background:var(--green); display:none; }
+  .broker-card.connected .broker-badge { display:block; }
+  .broker-form { background:var(--bg-card); border:1px solid var(--bg-border); border-radius:8px; padding:24px; max-width:600px; }
+  .broker-form h3 { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px; color:var(--gold); margin-bottom:18px; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-field { margin-bottom:12px; }
+  .form-field label { display:block; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-dim); font-family:'JetBrains Mono',monospace; margin-bottom:5px; }
+  .form-field input, .form-field select { width:100%; background:var(--bg-panel); border:1px solid var(--bg-border); color:var(--text-primary); padding:9px 12px; font-family:'JetBrains Mono',monospace; font-size:12px; border-radius:4px; transition:border-color .2s; appearance:none; }
+  .form-field input:focus, .form-field select:focus { border-color:var(--gold-dim); outline:none; }
+  .connect-btn { background:var(--green); color:var(--bg-deep); border:none; padding:12px 24px; font-family:'DM Sans',sans-serif; font-weight:700; font-size:11px; letter-spacing:2px; text-transform:uppercase; border-radius:4px; cursor:pointer; transition:all .2s; margin-top:6px; }
+  .connect-btn:hover { opacity:.85; }
+  .warning-box { background:rgba(255,69,96,.06); border:1px solid rgba(255,69,96,.2); border-radius:6px; padding:14px 16px; font-size:11px; color:#FF9BAD; line-height:1.6; margin-bottom:18px; font-family:'JetBrains Mono',monospace; }
+
+  /* ── PAIRS TABLE ── */
+  .table-wrapper { background:var(--bg-card); border:1px solid var(--bg-border); border-radius:8px; overflow:hidden; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .pairs-table { width:100%; border-collapse:collapse; font-family:'JetBrains Mono',monospace; font-size:11px; min-width:640px; }
+  .pairs-table th { text-align:left; padding:11px 14px; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-dim); border-bottom:1px solid var(--bg-border); background:var(--bg-deep); white-space:nowrap; }
+  .pairs-table td { padding:12px 14px; border-bottom:1px solid rgba(20,30,48,.5); transition:background .15s; }
+  .pairs-table tr:hover td { background:rgba(201,168,76,.03); }
+  .pair-name { font-weight:600; color:var(--text-primary); }
+  .pair-spread { color:var(--text-secondary); }
+  .pair-volatility-bar { height:3px; background:var(--bg-border); border-radius:2px; width:60px; position:relative; }
+  .pair-volatility-fill { height:100%; border-radius:2px; background:var(--gold); }
+  .bias-badge { display:inline-block; padding:2px 8px; border-radius:2px; font-size:9px; font-weight:700; letter-spacing:1.5px; }
+  .bias-badge.bull { background:rgba(0,229,160,.12); color:var(--green); }
+  .bias-badge.bear { background:rgba(255,69,96,.12); color:var(--red); }
+  .bias-badge.neut { background:rgba(201,168,76,.12); color:var(--gold); }
+
+  /* ── MODAL ── */
+  .modal-overlay { position:fixed; inset:0; background:rgba(4,8,15,.92); backdrop-filter:blur(12px); z-index:2000; display:none; align-items:center; justify-content:center; padding:20px; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--bg-card); border:1px solid var(--bg-border); border-radius:12px; padding:32px 28px; max-width:500px; width:100%; position:relative; animation:modalIn .3s ease; max-height:90svh; overflow-y:auto; }
+  @keyframes modalIn { from{opacity:0;transform:scale(.95) translateY(-10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+  .modal-close { position:absolute; top:14px; right:18px; background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer; transition:color .2s; line-height:1; }
+  .modal-close:hover { color:var(--text-primary); }
+
+  /* ── TOAST ── */
+  .toast-container { position:fixed; bottom:20px; right:20px; z-index:3000; display:flex; flex-direction:column; gap:8px; max-width:calc(100vw - 40px); }
+  .toast { background:var(--bg-panel); border:1px solid var(--bg-border); border-left:3px solid var(--green); border-radius:6px; padding:12px 18px; font-size:12px; color:var(--text-primary); animation:toastIn .3s ease, toastOut .3s ease 2.7s forwards; }
+  @keyframes toastIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes toastOut { from{opacity:1} to{opacity:0} }
+
+  /* ── FOOTER ── */
+  footer { background:var(--bg-card); border-top:1px solid var(--bg-border); padding:48px 24px 32px; }
+  .footer-grid { max-width:1400px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:32px; margin-bottom:32px; }
+  .footer-brand { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:3px; color:var(--gold); margin-bottom:10px; }
+  .footer-brand span { color:var(--text-primary); }
+  .footer-desc { font-size:12px; color:var(--text-dim); line-height:1.7; max-width:260px; }
+  .footer-col h4 { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--text-secondary); font-family:'JetBrains Mono',monospace; margin-bottom:14px; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:9px; }
+  .footer-col ul li a { font-size:12px; color:var(--text-dim); text-decoration:none; transition:color .2s; cursor:pointer; }
+  .footer-col ul li a:hover { color:var(--gold); }
+  .footer-bottom { max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding-top:20px; border-top:1px solid var(--bg-border); font-size:10px; color:var(--text-dim); font-family:'JetBrains Mono',monospace; }
+  .disclaimer-text { max-width:1400px; margin:14px auto 0; font-size:9px; color:var(--text-dim); font-family:'JetBrains Mono',monospace; line-height:1.6; }
+
+  /* ═══════════════════════════════
+     RESPONSIVE BREAKPOINTS
+  ═══════════════════════════════ */
+
+  /* Large tablets ≤ 1024px */
+  @media (max-width:1024px) {
+    .stats-row { grid-template-columns:repeat(3,1fr); }
+    .signal-grid { grid-template-columns:240px 1fr; }
+    .footer-grid { grid-template-columns:1fr 1fr; }
+    .sessions-row { grid-template-columns:repeat(2,1fr); }
+  }
+
+  /* Tablets ≤ 768px */
+  @media (max-width:768px) {
+    .nav-links { display:none; }
+    .nav-hamburger { display:flex; }
+
+    .hero { padding:calc(var(--nav-h) + 32px) 20px 48px; }
+    .hero-actions { flex-direction:column; }
+    .hero-actions button { width:100%; }
+
+    .stats-row { grid-template-columns:repeat(2,1fr); }
+
+    .signal-grid { grid-template-columns:1fr; min-height:auto; }
+    .signal-controls { border-right:none; border-bottom:1px solid var(--bg-border); }
+    .signal-card { grid-template-columns:auto 1fr; gap:10px; }
+    .signal-levels { grid-column:1/-1; display:flex; flex-direction:row; flex-wrap:wrap; gap:6px; justify-content:flex-start; }
+    .level-row { justify-content:flex-start; }
+
+    .sessions-row { grid-template-columns:1fr 1fr; }
+
+    .risk-grid { grid-template-columns:1fr; }
+
+    .strategy-cards { grid-template-columns:1fr; }
+
+    .ea-controls { gap:8px; }
+    .ea-controls select { flex:1 1 calc(50% - 4px); min-width:0; }
+    .ea-code { font-size:10px; padding:14px; }
+
+    .broker-grid { grid-template-columns:repeat(3,1fr); }
+
+    .form-row { grid-template-columns:1fr; }
+
+    .footer-grid { grid-template-columns:1fr 1fr; gap:24px; }
+    .footer-grid > div:first-child { grid-column:1/-1; }
+    .footer-desc { max-width:100%; }
+  }
+
+  /* Phones ≤ 480px */
+  @media (max-width:480px) {
+    .hero-tag { font-size:9px; letter-spacing:2px; padding:5px 10px; }
+
+    .stats-row { grid-template-columns:repeat(2,1fr); }
+    .stat-item { padding:18px 10px; }
+    .stat-value { font-size:28px; }
+
+    .signal-card { padding:12px; }
+    .signal-direction { width:36px; height:36px; font-size:14px; }
+    .signal-pair { font-size:15px; }
+
+    .sessions-row { grid-template-columns:1fr; }
+
+    .library-tabs { gap:0; }
+    .lib-tab { padding:10px 14px; font-size:10px; }
+
+    .broker-grid { grid-template-columns:repeat(2,1fr); }
+
+    .ea-controls select { flex:1 1 100%; }
+
+    .footer-grid { grid-template-columns:1fr; }
+
+    .btn-primary, .btn-secondary { padding:12px 20px; font-size:11px; }
+
+    .toast-container { left:16px; right:16px; bottom:16px; }
+    .toast { width:100%; }
+  }
+
+  /* Very small ≤ 360px */
+  @media (max-width:360px) {
+    nav { padding:0 16px; }
+    .hero { padding:calc(var(--nav-h) + 24px) 16px 40px; }
+    .section { padding:48px 16px; }
+    .section-inner { padding:0 16px; }
+    footer { padding:40px 16px 28px; }
+    .signal-controls, .signal-output { padding:16px; }
+    .risk-card { padding:18px; }
+    .broker-grid { grid-template-columns:1fr 1fr; }
+    .ea-header { padding:12px 14px; }
+    .ea-code { font-size:9px; padding:12px; }
+  }
+
+  /* Touch-friendly tap targets */
+  @media (hover:none) {
+    .lib-tab { padding:12px 18px; }
+    .strategy-pill { padding:8px 12px; }
+    .ctrl-select, .ctrl-input, .calc-field input, .calc-field select, .form-field input, .form-field select { padding:12px; font-size:16px; /* prevents iOS zoom */ }
+    .generate-btn, .calc-btn, .ea-gen-btn, .connect-btn, .btn-primary, .btn-secondary { padding:14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">FOREX<span>ELITE</span> PRO</a>
+  <ul class="nav-links">
+    <li><a onclick="scrollTo('signals')">Signals</a></li>
+    <li><a onclick="scrollTo('risk')">Risk Mgmt</a></li>
+    <li><a onclick="scrollTo('library')">Library</a></li>
+    <li><a onclick="scrollTo('ea')">EA Generator</a></li>
+    <li><a onclick="scrollTo('broker')">Broker Connect</a></li>
+    <li><a onclick="scrollTo('pairs')">Pairs</a></li>
+    <li><a class="nav-cta" onclick="openModal('register')">Get Started</a></li>
+  </ul>
+  <button class="nav-hamburger" id="hamburger" onclick="toggleDrawer()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- MOBILE DRAWER -->
+<div class="nav-drawer" id="nav-drawer">
+  <ul>
+    <li><a onclick="drawerNav('signals')">Signals</a></li>
+    <li><a onclick="drawerNav('risk')">Risk Management</a></li>
+    <li><a onclick="drawerNav('library')">Strategy Library</a></li>
+    <li><a onclick="drawerNav('ea')">EA Generator</a></li>
+    <li><a onclick="drawerNav('broker')">Broker Connect</a></li>
+    <li><a onclick="drawerNav('pairs')">Currency Pairs</a></li>
+  </ul>
+  <div class="drawer-cta"><button onclick="drawerNav('home');openModal('register')">GET STARTED FREE</button></div>
+</div>
+
+<!-- HERO -->
+<div class="hero" id="home">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+  <div class="hero-content">
+    <div class="hero-tag">INSTITUTIONAL GRADE TRADING INTELLIGENCE</div>
+    <h1>TRADE LIKE<br><span class="gold">SMART</span><br>MONEY</h1>
+    <p class="hero-sub">Complete forex ecosystem — SMC signals, rule-based strategies, precision risk management, MT5 EA generation, and multi-broker connectivity. All in one platform.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="scrollTo('signals')">Generate Signals</button>
+      <button class="btn-secondary" onclick="scrollTo('library')">Strategy Library</button>
+    </div>
+  </div>
+</div>
+
+<!-- TICKER -->
+<div class="ticker-bar">
+  <div class="ticker-inner" id="ticker"></div>
+</div>
+
+<!-- STATS -->
+<div class="section">
+  <div class="stats-row">
+    <div class="stat-item"><div class="stat-value">47+</div><div class="stat-label">Strategies</div></div>
+    <div class="stat-item"><div class="stat-value">28</div><div class="stat-label">Currency Pairs</div></div>
+    <div class="stat-item"><div class="stat-value">9</div><div class="stat-label">Timeframes</div></div>
+    <div class="stat-item"><div class="stat-value">6</div><div class="stat-label">Brokers</div></div>
+    <div class="stat-item"><div class="stat-value">26Y</div><div class="stat-label">Experience</div></div>
+    <div class="stat-item"><div class="stat-value">24/5</div><div class="stat-label">Coverage</div></div>
+  </div>
+</div>
+
+<!-- SIGNAL GENERATOR -->
+<div class="signal-section section-full" id="signals">
+  <div class="section-inner">
+    <div class="section-header">
+      <div class="section-label">// RULE-BASED ENGINE</div>
+      <h2 class="section-title">SIGNAL GENERATOR</h2>
+      <p class="section-desc">SMC, Price Action, and Support & Resistance logic fused into institutional-grade trade signals with full risk parameters.</p>
+    </div>
+    <div class="signal-grid">
+      <div class="signal-controls">
+        <h3>CONFIGURE SIGNAL</h3>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Currency Pair</div>
+          <select class="ctrl-select" id="sig-pair">
+            <option>XAUUSD — Gold</option>
+            <option>EURUSD — Euro/Dollar</option>
+            <option>GBPUSD — Cable</option>
+            <option>USDJPY — Dollar/Yen</option>
+            <option>GBPJPY — Beast</option>
+            <option>AUDUSD — Aussie</option>
+            <option>USDCAD — Loonie</option>
+            <option>NZDUSD — Kiwi</option>
+            <option>USDCHF — Swissie</option>
+            <option>EURJPY — Euro/Yen</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Timeframe</div>
+          <select class="ctrl-select" id="sig-tf">
+            <option>M1 — Scalping</option>
+            <option>M5 — Micro</option>
+            <option>M15 — Intraday</option>
+            <option>M30 — Swing Entry</option>
+            <option selected>H1 — Primary</option>
+            <option>H4 — Swing</option>
+            <option>D1 — Position</option>
+            <option>W1 — Macro</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Strategy Layer</div>
+          <div class="strategy-pills">
+            <button class="strategy-pill active" onclick="togglePill(this)">SMC</button>
+            <button class="strategy-pill active" onclick="togglePill(this)">S&R</button>
+            <button class="strategy-pill" onclick="togglePill(this)">Price Action</button>
+            <button class="strategy-pill" onclick="togglePill(this)">OB</button>
+            <button class="strategy-pill" onclick="togglePill(this)">FVG</button>
+            <button class="strategy-pill" onclick="togglePill(this)">CHoCH</button>
+            <button class="strategy-pill" onclick="togglePill(this)">BOS</button>
+            <button class="strategy-pill" onclick="togglePill(this)">Liquidity</button>
+          </div>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Risk / Trade (%)</div>
+          <input class="ctrl-input" type="number" value="1" min="0.5" max="5" step="0.5" id="sig-risk">
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Min R:R Ratio</div>
+          <select class="ctrl-select" id="sig-rr">
+            <option>1:1 — Break Even</option>
+            <option>1:1.5 — Conservative</option>
+            <option selected>1:2 — Standard</option>
+            <option>1:3 — Aggressive</option>
+            <option>1:5 — High Target</option>
+          </select>
+        </div>
+        <button class="generate-btn" onclick="generateSignals()">⚡ GENERATE SIGNALS</button>
+      </div>
+      <div class="signal-output" id="signal-output">
+        <div class="no-signal">
+          <div class="no-signal-icon">📡</div>
+          <p style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;">CONFIGURE & GENERATE SIGNALS</p>
+          <p style="font-size:12px;color:var(--text-dim);">Select pair, timeframe and strategy layer</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SESSIONS -->
+<div class="section">
+  <div class="section-label">// MARKET HOURS</div>
+  <h2 class="section-title">TRADING SESSIONS</h2>
+  <div class="sessions-row" id="sessions-row"></div>
+</div>
+
+<div class="divider"></div>
+
+<!-- RISK MANAGEMENT -->
+<div class="section" id="risk">
+  <div class="section-header">
+    <div class="section-label">// CAPITAL PROTECTION</div>
+    <h2 class="section-title">RISK MANAGEMENT</h2>
+    <p class="section-desc">Professional position sizing, pip calculators, and drawdown limits. The foundation of consistent trading.</p>
+  </div>
+  <div class="risk-grid">
+    <div class="risk-card">
+      <h3>LOT SIZE CALCULATOR</h3>
+      <div class="calc-field"><label>Account Balance ($)</label><input type="number" id="acc-balance" value="10000"></div>
+      <div class="calc-field"><label>Risk Per Trade (%)</label><input type="number" id="risk-pct" value="1" min="0.1" max="10" step="0.1"></div>
+      <div class="calc-field"><label>Stop Loss (Pips)</label><input type="number" id="sl-pips" value="30"></div>
+      <div class="calc-field"><label>Pair Type</label><select id="lot-pair"><option value="0.0001">XAUUSD</option><option value="0.0001" selected>EURUSD / GBPUSD</option><option value="0.01">USDJPY</option></select></div>
+      <button class="calc-btn" onclick="calcLotSize()">CALCULATE LOT SIZE</button>
+      <div class="calc-result"><div class="calc-result-label">Recommended Lot Size</div><div class="calc-result-value" id="lot-result">— LOT</div></div>
+    </div>
+    <div class="risk-card">
+      <h3>PIP VALUE CALCULATOR</h3>
+      <div class="calc-field"><label>Lot Size</label><input type="number" id="pip-lot" value="0.1" step="0.01"></div>
+      <div class="calc-field"><label>Number of Pips</label><input type="number" id="pip-count" value="50"></div>
+      <div class="calc-field"><label>Pair Type</label><select id="pip-type"><option value="10">Major USD base — $10/pip</option><option value="9.2">EUR/USD, GBP/USD</option><option value="0.009">USD/JPY</option><option value="1">XAU/USD Gold</option></select></div>
+      <button class="calc-btn" onclick="calcPipValue()">CALCULATE PIP VALUE</button>
+      <div class="calc-result"><div class="calc-result-label">Total Pip Value ($)</div><div class="calc-result-value" id="pip-result">— USD</div></div>
+    </div>
+    <div class="risk-card">
+      <h3>RISK:REWARD RATIO</h3>
+      <div class="calc-field"><label>Entry Price</label><input type="number" id="rr-entry" value="1.2500" step="0.0001"></div>
+      <div class="calc-field"><label>Stop Loss Price</label><input type="number" id="rr-sl" value="1.2460" step="0.0001"></div>
+      <div class="calc-field"><label>Take Profit Price</label><input type="number" id="rr-tp" value="1.2580" step="0.0001"></div>
+      <div class="calc-field"><label>Direction</label><select id="rr-dir"><option value="buy">BUY</option><option value="sell">SELL</option></select></div>
+      <button class="calc-btn" onclick="calcRR()">CALCULATE R:R</button>
+      <div class="calc-result"><div class="calc-result-label">Risk : Reward Ratio</div><div class="calc-result-value" id="rr-result">— : —</div></div>
+    </div>
+    <div class="risk-card">
+      <h3>DRAWDOWN RULES</h3>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-secondary);line-height:1.8;">
+        <div style="padding:9px 0;border-bottom:1px solid var(--bg-border);display:flex;justify-content:space-between;"><span style="color:var(--text-dim)">Daily Loss Limit</span><span style="color:var(--red)">Max 3%</span></div>
+        <div style="padding:9px 0;border-bottom:1px solid var(--bg-border);display:flex;justify-content:space-between;"><span style="color:var(--text-dim)">Weekly Drawdown</span><span style="color:var(--red)">Max 6%</span></div>
+        <div style="padding:9px 0;border-bottom:1px solid var(--bg-border);display:flex;justify-content:space-between;"><span style="color:var(--text-dim)">Max Risk Per Trade</span><span style="color:var(--gold)">1–2%</span></div>
+        <div style="padding:9px 0;border-bottom:1px solid var(--bg-border);display:flex;justify-content:space-between;"><span style="color:var(--text-dim)">Max Open Trades</span><span style="color:var(--gold)">3–5</span></div>
+        <div style="padding:9px 0;border-bottom:1px solid var(--bg-border);display:flex;justify-content:space-between;"><span style="color:var(--text-dim)">Minimum R:R</span><span style="color:var(--green)">1:2</span></div>
+        <div style="padding:9px 0;border-bottom:1px solid var(--bg-border);display:flex;justify-content:space-between;"><span style="color:var(--text-dim)">Target Win Rate</span><span style="color:var(--green)">45%+</span></div>
+        <div style="padding:9px 0;display:flex;justify-content:space-between;"><span style="color:var(--text-dim)">Correlation Limit</span><span style="color:var(--blue)">3 max</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- LIBRARY -->
+<div class="section" id="library">
+  <div class="section-header">
+    <div class="section-label">// KNOWLEDGE BASE</div>
+    <h2 class="section-title">STRATEGY LIBRARY</h2>
+    <p class="section-desc">47+ institutional and retail strategies covering every market condition.</p>
+  </div>
+  <div class="library-tabs">
+    <button class="lib-tab active" onclick="switchTab('smc')">SMC</button>
+    <button class="lib-tab" onclick="switchTab('price')">Price Action</button>
+    <button class="lib-tab" onclick="switchTab('sr')">S&amp;R</button>
+    <button class="lib-tab" onclick="switchTab('patterns')">Chart Patterns</button>
+    <button class="lib-tab" onclick="switchTab('candlestick')">Candlestick</button>
+    <button class="lib-tab" onclick="switchTab('fundamental')">Fundamental</button>
+    <button class="lib-tab" onclick="switchTab('mm')">Money Mgmt</button>
+  </div>
+  <div class="lib-content active" id="tab-smc"><div class="strategy-cards" id="smc-cards"></div></div>
+  <div class="lib-content" id="tab-price"><div class="strategy-cards" id="price-cards"></div></div>
+  <div class="lib-content" id="tab-sr"><div class="strategy-cards" id="sr-cards"></div></div>
+  <div class="lib-content" id="tab-patterns"><div class="strategy-cards" id="patterns-cards"></div></div>
+  <div class="lib-content" id="tab-candlestick"><div class="strategy-cards" id="candlestick-cards"></div></div>
+  <div class="lib-content" id="tab-fundamental"><div class="strategy-cards" id="fundamental-cards"></div></div>
+  <div class="lib-content" id="tab-mm"><div class="strategy-cards" id="mm-cards"></div></div>
+</div>
+
+<div class="divider"></div>
+
+<!-- EA GENERATOR -->
+<div class="section" id="ea">
+  <div class="section-header">
+    <div class="section-label">// MT5 EXPERT ADVISOR</div>
+    <h2 class="section-title">EA CODE GENERATOR</h2>
+    <p class="section-desc">Generate production-ready MQL5 Expert Advisor code. Select strategy, customize, copy and deploy.</p>
+  </div>
+  <div class="ea-container">
+    <div class="ea-header">
+      <div class="ea-header-left">
+        <div class="ea-dot red"></div><div class="ea-dot yellow"></div><div class="ea-dot green"></div>
+        <div class="ea-filename" id="ea-filename">ForexElite_EA.mq5</div>
+      </div>
+      <button class="copy-btn" onclick="copyCode()">COPY CODE</button>
+    </div>
+    <div class="ea-controls">
+      <select id="ea-strategy" onchange="updateEA()">
+        <option value="smc">SMC — Order Block + CHoCH</option>
+        <option value="sr">Support &amp; Resistance Bounce</option>
+        <option value="ma">Moving Average Crossover</option>
+        <option value="fvg">Fair Value Gap (FVG)</option>
+        <option value="breakout">Breakout + Retest</option>
+      </select>
+      <select id="ea-pair" onchange="updateEA()">
+        <option>XAUUSD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>GBPJPY</option>
+      </select>
+      <select id="ea-tf" onchange="updateEA()">
+        <option>PERIOD_M15</option><option>PERIOD_M30</option><option selected>PERIOD_H1</option><option>PERIOD_H4</option><option>PERIOD_D1</option>
+      </select>
+      <input id="ea-risk" type="number" value="1" min="0.5" max="5" step="0.5" style="background:var(--bg-card);border:1px solid var(--bg-border);color:var(--text-primary);padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;border-radius:4px;width:70px;" onchange="updateEA()">
+      <button class="ea-gen-btn" onclick="updateEA()">GENERATE</button>
+    </div>
+    <div class="ea-code" id="ea-code"></div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- BROKER -->
+<div class="section" id="broker">
+  <div class="section-header">
+    <div class="section-label">// BROKER INTEGRATION</div>
+    <h2 class="section-title">CONNECT YOUR BROKER</h2>
+    <p class="section-desc">Link your MT5 account. Platform will use your EA settings to manage trades automatically.</p>
+  </div>
+  <div class="warning-box">⚠ IMPORTANT: Automated trading carries significant financial risk. Only connect demo or funded accounts you are comfortable with. Always test EAs on demo for minimum 30 days before live deployment.</div>
+  <div class="broker-grid" id="broker-grid"></div>
+  <div class="broker-form">
+    <h3>MT5 ACCOUNT CREDENTIALS</h3>
+    <div class="form-row">
+      <div class="form-field"><label>Select Broker</label><select id="broker-select"><option>Exness Global</option><option>XM Global</option><option>IC Markets</option><option>FXTM</option><option>Pepperstone</option><option>FBS</option></select></div>
+      <div class="form-field"><label>Account Type</label><select><option>Demo Account</option><option>Live Account</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>MT5 Account Number</label><input type="text" placeholder="e.g. 12345678"></div>
+      <div class="form-field"><label>MT5 Password</label><input type="password" placeholder="Investor or Master"></div>
+    </div>
+    <div class="form-field"><label>Server Name</label><input type="text" placeholder="e.g. Exness-MT5Real3"></div>
+    <div class="form-row">
+      <div class="form-field"><label>Max Lot Size</label><input type="number" value="0.5" step="0.01"></div>
+      <div class="form-field"><label>Max Daily Trades</label><input type="number" value="5"></div>
+    </div>
+    <button class="connect-btn" onclick="connectBroker()">🔗 CONNECT & AUTHENTICATE</button>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- PAIRS -->
+<div class="section" id="pairs">
+  <div class="section-header">
+    <div class="section-label">// MARKET WATCHLIST</div>
+    <h2 class="section-title">CURRENCY PAIRS</h2>
+    <p class="section-desc">Major, minor and exotic pairs with spread estimates, volatility, and institutional bias readings.</p>
+  </div>
+  <div class="table-wrapper">
+    <table class="pairs-table">
+      <thead><tr><th>Pair</th><th>Bid</th><th>Ask</th><th>Spread</th><th>Volatility</th><th>Session</th><th>Bias</th><th>Signal</th></tr></thead>
+      <tbody id="pairs-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">FOREX<span>ELITE</span> PRO</div>
+      <p class="footer-desc">Institutional-grade forex trading intelligence platform combining SMC, Price Action, and quantitative strategies into one complete ecosystem.</p>
+    </div>
+    <div class="footer-col"><h4>Platform</h4><ul><li><a onclick="scrollTo('signals')">Signal Generator</a></li><li><a onclick="scrollTo('risk')">Risk Management</a></li><li><a onclick="scrollTo('ea')">EA Generator</a></li><li><a onclick="scrollTo('broker')">Broker Connect</a></li></ul></div>
+    <div class="footer-col"><h4>Library</h4><ul><li><a onclick="scrollTo('library')">SMC Strategies</a></li><li><a onclick="scrollTo('library')">Price Action</a></li><li><a onclick="scrollTo('library')">Chart Patterns</a></li><li><a onclick="scrollTo('library')">Candlestick</a></li></ul></div>
+    <div class="footer-col"><h4>Markets</h4><ul><li><a onclick="scrollTo('pairs')">Major Pairs</a></li><li><a onclick="scrollTo('pairs')">Minor Pairs</a></li><li><a onclick="scrollTo('pairs')">Gold (XAUUSD)</a></li><li><a onclick="scrollTo('pairs')">Sessions</a></li></ul></div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 ForexElite Pro. All rights reserved.</span>
+    <span>POWERED BY 26Y INSTITUTIONAL EXPERTISE</span>
+  </div>
+  <p class="disclaimer-text">DISCLAIMER: Trading foreign exchange and CFDs carries a high level of risk and may not be suitable for all investors. The high degree of leverage can work against you as well as for you. Before deciding to trade, you should carefully consider your investment objectives, level of experience, and risk appetite. Signals and strategies are for educational and informational purposes only and do not constitute financial advice.</p>
+</footer>
+
+<script>
+// ── DATA ──
+const PAIRS_DATA=[
+  {pair:'XAUUSD',bid:'2318.45',ask:'2318.95',spread:0.5,vol:90,session:'All',bias:'bull',signal:'BUY'},
+  {pair:'EURUSD',bid:'1.08412',ask:'1.08418',spread:0.6,vol:75,session:'London/NY',bias:'bear',signal:'SELL'},
+  {pair:'GBPUSD',bid:'1.26534',ask:'1.26542',spread:0.8,vol:78,session:'London',bias:'bull',signal:'BUY'},
+  {pair:'USDJPY',bid:'154.321',ask:'154.330',spread:0.9,vol:70,session:'Tokyo/NY',bias:'bull',signal:'BUY'},
+  {pair:'GBPJPY',bid:'195.241',ask:'195.265',spread:2.4,vol:95,session:'London',bias:'neut',signal:'WAIT'},
+  {pair:'AUDUSD',bid:'0.65312',ask:'0.65320',spread:0.8,vol:60,session:'Sydney',bias:'bear',signal:'SELL'},
+  {pair:'USDCAD',bid:'1.36812',ask:'1.36820',spread:0.8,vol:55,session:'NY',bias:'bull',signal:'BUY'},
+  {pair:'NZDUSD',bid:'0.60124',ask:'0.60133',spread:0.9,vol:50,session:'Sydney',bias:'bear',signal:'SELL'},
+  {pair:'USDCHF',bid:'0.90123',ask:'0.90132',spread:0.9,vol:48,session:'London',bias:'neut',signal:'WAIT'},
+  {pair:'EURJPY',bid:'167.342',ask:'167.356',spread:1.4,vol:72,session:'Tokyo/London',bias:'bull',signal:'BUY'},
+  {pair:'GBPNZD',bid:'2.10234',ask:'2.10260',spread:2.6,vol:80,session:'London',bias:'bull',signal:'BUY'},
+  {pair:'EURGBP',bid:'0.85612',ask:'0.85620',spread:0.8,vol:42,session:'London',bias:'bear',signal:'SELL'},
+];
+const SESSIONS=[
+  {name:'SYDNEY',open:'22:00',close:'07:00',pairs:'AUD, NZD, JPY',tz:'UTC',active:true},
+  {name:'TOKYO',open:'00:00',close:'09:00',pairs:'JPY, AUD, NZD',tz:'UTC',active:true},
+  {name:'LONDON',open:'08:00',close:'17:00',pairs:'EUR, GBP, CHF',tz:'UTC',active:false},
+  {name:'NEW YORK',open:'13:00',close:'22:00',pairs:'USD, CAD, MXN',tz:'UTC',active:false},
+];
+const BROKERS=[
+  {name:'EXNESS',status:'disconnected'},{name:'XM GLOBAL',status:'disconnected'},
+  {name:'IC MARKETS',status:'disconnected'},{name:'FXTM',status:'disconnected'},
+  {name:'PEPPERSTONE',status:'disconnected'},{name:'FBS',status:'disconnected'},
+];
+const TICKER_PAIRS=[
+  {pair:'XAUUSD',price:'2318.45',change:'+0.42%',up:true},{pair:'EURUSD',price:'1.08415',change:'-0.18%',up:false},
+  {pair:'GBPUSD',price:'1.26538',change:'+0.31%',up:true},{pair:'USDJPY',price:'154.325',change:'+0.22%',up:true},
+  {pair:'GBPJPY',price:'195.248',change:'+0.55%',up:true},{pair:'AUDUSD',price:'0.65316',change:'-0.12%',up:false},
+  {pair:'USDCAD',price:'1.36815',change:'+0.08%',up:true},{pair:'NZDUSD',price:'0.60128',change:'-0.25%',up:false},
+  {pair:'EURJPY',price:'167.350',change:'+0.41%',up:true},{pair:'USDCHF',price:'0.90128',change:'-0.05%',up:false},
+];
+
+// ── STRATEGY DATA ──
+const SMC_STRATEGIES=[
+  {title:'ORDER BLOCK ENTRY',badge:'badge-smc',badgeText:'SMC',desc:'Identify institutional order blocks — the last bearish candle before a bullish impulse (bullish OB). Enter when price returns to the zone.',tags:['H1','H4','D1','All Pairs'],rules:['Identify impulsive leg that breaks structure (BOS)','Find the last opposing candle before the impulse — that is your OB','Wait for price to retrace into OB zone','Look for confirmation: rejection wick, engulfing, or doji','Enter with stop below/above OB, TP at structural high/low','High probability when OB aligns with higher TF S&R']},
+  {title:'FAIR VALUE GAP (FVG)',badge:'badge-smc',badgeText:'SMC',desc:'Three-candle pattern where the middle candle creates a gap between candle 1 and candle 3, leaving an imbalance price tends to revisit.',tags:['M15','M30','H1','Scalping/Day'],rules:['Look for 3-candle pattern: candle 1 high vs candle 3 low (bullish FVG)','Bullish FVG: gap between C1 high and C3 low','Bearish FVG: gap between C1 low and C3 high','Mark the FVG zone on chart','Enter when price returns to 50% of FVG with momentum confirmation','TP at next structural level, SL beyond FVG']},
+  {title:'CHANGE OF CHARACTER (CHoCH)',badge:'badge-smc',badgeText:'SMC',desc:'CHoCH signals a shift from one trend to another. In a downtrend, a break above the last lower high signals bullish CHoCH.',tags:['H1','H4','D1','Trend Reversal'],rules:['In downtrend: identify series of LH and LL','CHoCH occurs when price breaks above the most recent LH','In uptrend: CHoCH when price breaks below most recent HL','Confirm with volume increase on the break candle','Enter on retest of the CHoCH level','TP at previous swing, SL below CHoCH origin']},
+  {title:'BREAK OF STRUCTURE (BOS)',badge:'badge-smc',badgeText:'SMC',desc:'BOS confirms trend continuation. In an uptrend, BOS occurs when price creates a new higher high, confirming bullish bias.',tags:['All TF','Trend Following'],rules:['In uptrend: BOS = new HH above previous HH','In downtrend: BOS = new LL below previous LL','BOS confirms Smart Money is pushing in trend direction','Use BOS to define direction, then wait for pullback to OB','Enter after BOS + retracement to demand/supply zone','Multi-timeframe: BOS on D1 then entry on H1 OB']},
+  {title:'LIQUIDITY SWEEP ENTRY',badge:'badge-smc',badgeText:'SMC',desc:'Market makers sweep stop-loss clusters above recent highs or below recent lows before reversing. Enter after the sweep.',tags:['H1','H4','Reversal'],rules:['Identify equal highs/lows — these are liquidity pools','Wait for price to sweep (spike) beyond the liquidity level','Sweep candle should close back inside the range','Look for OB or FVG just beyond the swept level','Enter in direction of reversal after sweep confirmation','TP: opposite liquidity pool, SL: beyond sweep candle wick']},
+  {title:'MITIGATION BLOCK',badge:'badge-smc',badgeText:'SMC',desc:'A mitigation block is a breaker block — an OB that failed and now acts as a new supply/demand zone in the opposite direction.',tags:['H4','D1','Institutional'],rules:['Identify a bullish OB that price breaks below (bearish)','That former bullish OB becomes a bearish mitigation block','Wait for price to retrace back up into the mitigation block','Enter short when price shows rejection from mitigation block','Confirm with bearish price action (engulfing, pin bar)','SL above mitigation block, TP at next structural low']},
+];
+const PRICE_STRATEGIES=[
+  {title:'PIN BAR REVERSAL',badge:'badge-price',badgeText:'PRICE ACTION',desc:'A single candlestick with a long tail and small body, indicating rejection of a price level. One of the highest probability single-candle setups.',tags:['All TF','All Pairs','Reversal'],rules:['Pin bar body should be less than 1/3 of total candle range','Wick should be at least 2/3 of total candle length','Must form at key level: S&R, OB, Fibonacci, trend line','Bullish pin: long lower wick, small body at top','Bearish pin: long upper wick, small body at bottom','Enter on break of pin bar body with confirmation candle']},
+  {title:'ENGULFING PATTERN',badge:'badge-price',badgeText:'PRICE ACTION',desc:'A two-candle reversal pattern where the second candle completely engulfs the body of the first.',tags:['H1','H4','D1','Strong Signal'],rules:['Second candle body must completely engulf first candle body','Bullish: first candle bearish, second candle bullish','Bearish: first candle bullish, second candle bearish','Must occur at key S&R, OB, or Fibonacci level','Larger the second candle vs first = stronger signal','Enter on close of engulfing candle, SL beyond the pattern']},
+  {title:'INSIDE BAR BREAKOUT',badge:'badge-price',badgeText:'PRICE ACTION',desc:'The inside bar is contained within the mother bar, indicating consolidation. Breakout signals the directional move.',tags:['H4','D1','Continuation'],rules:['Inside bar high must be lower than mother bar high','Inside bar low must be higher than mother bar low','More powerful when mother bar is large and directional','Trade breakout in direction of overall trend','Enter on break and close beyond mother bar high/low','Tight SL: inside the inside bar range']},
+  {title:'TREND LINE BOUNCE',badge:'badge-price',badgeText:'PRICE ACTION',desc:'Price bouncing off a validated trend line. Requires minimum 2-3 touches. More touches = stronger line.',tags:['H1','H4','Trend Following'],rules:['Draw trend line connecting minimum 2 swing points','Third touch is the entry opportunity','Look for rejection candle at trend line: pin bar, engulf','Enter with confirmation on touch + rejection candle close','SL: below trend line (bullish) or above (bearish)','TP: next swing high/low or 1:2 R:R minimum']},
+];
+const SR_STRATEGIES=[
+  {title:'SUPPORT & RESISTANCE BOUNCE',badge:'badge-sr',badgeText:'S&R',desc:'Price bouncing off historical S&R levels. Most powerful when a level has been tested multiple times.',tags:['All TF','All Pairs','High Probability'],rules:['Identify key horizontal S&R levels on H4/D1 first','Strong level: minimum 2 previous touches/reactions','Wait for price to approach the level','Confirm with rejection candle at the level','Enter in direction of bounce, SL beyond the level','Support becomes resistance (SBR) and vice versa (RBS)']},
+  {title:'BREAKOUT & RETEST',badge:'badge-sr',badgeText:'S&R',desc:'After a key level breaks with strong momentum, price often retests the level before continuing.',tags:['H1','H4','Continuation'],rules:['Identify key S&R level that has held multiple times','Wait for strong breakout candle that closes beyond level','Volume should increase on breakout','Do NOT enter on the breakout — wait for retest','Enter when price retests and shows rejection from former level','TP: measured move equal to the range that was broken']},
+  {title:'FIBONACCI RETRACEMENT',badge:'badge-sr',badgeText:'S&R',desc:'Use Fibonacci ratios (38.2%, 50%, 61.8%, 78.6%) to identify potential reversal zones within a pullback.',tags:['H1','H4','D1','Confluence'],rules:['Identify clear swing high and swing low','Draw Fib from swing low to high (bullish) or high to low (bearish)','Key levels: 38.2%, 50%, 61.8%, 78.6%','Most powerful zone: 61.8% — the golden ratio','Enter when price shows rejection from key Fib level','Combine Fib with S&R, OB, or trend line for confluence']},
+  {title:'SUPPLY & DEMAND ZONES',badge:'badge-sr',badgeText:'S&R',desc:'Supply zones are areas where large sell orders cluster. Demand zones are where large buy orders exist.',tags:['H4','D1','W1','Institutional'],rules:['Demand zone: area price left rapidly upward (base-rally)','Supply zone: area price left rapidly downward (base-drop)','Fresh zones (untested) are stronger than retested ones','Draw zone from base of the explosive move','Enter when price returns to zone with rejection confirmation','Zone loses strength after multiple touches — reassess']},
+];
+const PATTERN_STRATEGIES=[
+  {title:'HEAD & SHOULDERS',badge:'badge-pa',badgeText:'PATTERN',desc:'Classic reversal pattern with three peaks — left shoulder, higher head, right shoulder. Neckline break confirms reversal.',tags:['H4','D1','Reversal','Strong Signal'],rules:['Three peaks: left shoulder, head (highest), right shoulder','Shoulders should be at approximately same price level','Neckline connects lows between shoulders and head','Entry: on break and close below neckline (bearish)','Stop Loss: above right shoulder','Target: measured move = head height from neckline']},
+  {title:'DOUBLE TOP / DOUBLE BOTTOM',badge:'badge-pa',badgeText:'PATTERN',desc:'Two approximately equal peaks (double top) or troughs (double bottom) separated by a retracement.',tags:['All TF','Reversal','All Pairs'],rules:['Two peaks at approximately same price level','Second peak should slightly fail to exceed first peak','Neckline: the low between the two peaks','Entry: on break of neckline with momentum','TP: measured distance from top to neckline projected down','Volume typically decreases on second top = confirmation']},
+  {title:'ASCENDING / DESCENDING TRIANGLE',badge:'badge-pa',badgeText:'PATTERN',desc:'Ascending: flat top, rising lows — bullish. Descending: flat bottom, falling highs — bearish.',tags:['H1','H4','Continuation'],rules:['Ascending: flat resistance with rising support line','Descending: flat support with falling resistance line','Draw trend line connecting highs/lows within pattern','Wait for breakout with strong momentum candle','Enter on breakout in direction of trend/pattern bias','TP: height of triangle projected from breakout point']},
+  {title:'BULL / BEAR FLAG',badge:'badge-pa',badgeText:'PATTERN',desc:'Strong directional move (flagpole), followed by a tight parallel consolidation channel. Breakout continues.',tags:['M15','H1','H4','Continuation'],rules:['Strong impulsive move = flagpole','Flag: consolidation with slight counter-trend slope','Flag should not retrace more than 50% of flagpole','Volume decreases during consolidation phase','Entry: on breakout of flag in flagpole direction','TP: flagpole length projected from breakout point']},
+];
+const CANDLE_STRATEGIES=[
+  {title:'DOJI REVERSAL',badge:'badge-smc',badgeText:'CANDLESTICK',desc:'Doji candles have very small bodies indicating indecision. At key levels, they signal potential reversal.',tags:['All TF','All Pairs'],rules:['Doji: open and close price are very close or equal','Long-legged doji shows greatest indecision (wicks both sides)','Dragonfly doji (long lower wick): bullish reversal signal','Gravestone doji (long upper wick): bearish reversal signal','Must form at key level for high probability setup','Confirm with next candle direction before entering']},
+  {title:'HAMMER & SHOOTING STAR',badge:'badge-smc',badgeText:'CANDLESTICK',desc:'Hammer (bullish reversal at bottom) has long lower wick. Shooting Star (bearish reversal at top) has long upper wick.',tags:['All TF','Reversal'],rules:['Hammer: lower wick at least 2x the body length','Hammer body should be at the upper part of the candle','Hammer color less important, but green preferred','Shooting Star: upper wick at least 2x body length','Must occur at resistance (shooting star) or support (hammer)','Confirmation: next candle should close in reversal direction']},
+  {title:'THREE SOLDIERS / THREE CROWS',badge:'badge-smc',badgeText:'CANDLESTICK',desc:'Three consecutive bullish candles (Three Soldiers) signal strong bullish reversal. Three Crows: opposite bearish signal.',tags:['H1','H4','D1','Strong Signal'],rules:['Three consecutive same-direction candles with healthy bodies','Each candle opens within the body of the previous candle','Each candle closes near its high (soldiers) or low (crows)','Small upper wicks indicate sustained buying/selling pressure','Most reliable after prolonged downtrend (soldiers) or uptrend (crows)','Enter on close of third candle, SL below/above pattern']},
+];
+const FUND_STRATEGIES=[
+  {title:'HIGH IMPACT NEWS TRADING',badge:'badge-fund',badgeText:'FUNDAMENTAL',desc:'Trading around high-impact events such as NFP, FOMC decisions, CPI data, and central bank rate decisions.',tags:['All Pairs','M1 to H1','Event-Driven'],rules:['Use economic calendar (Forex Factory, Investing.com)','Key events: NFP, FOMC, CPI, GDP, Central Bank decisions','Wait 1–3 minutes after release for initial volatility to settle','Trade in direction of the surprise (actual vs forecast)','Use wider stops — spreads widen significantly on news','Set profit targets quickly — volatility drops rapidly post-news']},
+  {title:'CENTRAL BANK POLICY DIVERGENCE',badge:'badge-fund',badgeText:'FUNDAMENTAL',desc:'When one central bank hikes while another cuts, the hiking bank\'s currency tends to strengthen.',tags:['D1','W1','Position Trading'],rules:['Research current interest rate policy of both currencies','Hawkish (hiking) vs Dovish (cutting) = buy hawkish currency','Monitor Fed, ECB, BOE, BOJ, RBA, RBNZ policy statements','Enter on daily timeframe pullbacks to key S&R','Hold for days to weeks — this is macro positioning','Reassess after each central bank meeting or policy shift']},
+  {title:'RISK-ON / RISK-OFF FRAMEWORK',badge:'badge-fund',badgeText:'FUNDAMENTAL',desc:'Risk-on environments favor AUD, NZD. Risk-off environments drive flows into USD, JPY, CHF safe havens.',tags:['All TF','Macro'],rules:['Monitor VIX, S&P 500, and gold for risk sentiment','VIX above 25 = risk-off, below 15 = risk-on','Risk-on: buy AUD, NZD, EM currencies vs safe havens','Risk-off: buy USD, JPY, CHF; sell risk currencies','Correlate with equity market direction daily','Use as directional filter — not standalone entry signal']},
+];
+const MM_STRATEGIES=[
+  {title:'1% RISK RULE',badge:'badge-mm',badgeText:'MONEY MGMT',desc:'Never risk more than 1–2% of your account on a single trade. The foundational rule of professional forex trading.',tags:['All Traders','Capital Protection'],rules:['Calculate 1% of total account balance before each trade','This dollar amount is your maximum loss per trade','Use position sizing formula: Risk$ / (SL pips × pip value)','Adjust lot size — never adjust stop loss to fit larger lot','After 10 consecutive losses at 1%: still have 90% of capital','The only rule that ensures you can always return to trade']},
+  {title:'PYRAMID TRADING',badge:'badge-mm',badgeText:'MONEY MGMT',desc:'Add to winning positions as price moves in your favor, reducing subsequent sizes to maintain risk control.',tags:['H1','H4','D1','Advanced'],rules:['Enter initial position (e.g., 0.3 lot) at setup','Move SL to break-even once price moves 1R in your favor','Add second position (smaller: 0.2 lot) at pullback to break-even SL','Add third position (smallest: 0.1 lot) at next structure','Each addition: SL for whole position moves to protect profits','Never pyramid in a losing position — pyramiding only on winners']},
+  {title:'TRAILING STOP MANAGEMENT',badge:'badge-mm',badgeText:'MONEY MGMT',desc:'Protect profits by moving stop loss in the direction of the trade as it becomes profitable.',tags:['All TF','Profit Protection'],rules:['Move SL to break-even once trade hits 1R profit','Trail SL below each new higher low (long) or higher high (short)','Use ATR-based trail: SL = recent swing ± 1.5× ATR','Never move SL against the trade (widening loss)','Partial close option: bank 50% at 1R, trail remaining 50%','On M15/M30: trail using the 20-period EMA as dynamic SL']},
+  {title:'KELLY CRITERION SIZING',badge:'badge-mm',badgeText:'MONEY MGMT',desc:'Mathematical formula for optimal bet sizing based on win rate and average win/loss ratio.',tags:['Advanced','Quantitative'],rules:['Kelly % = W - [(1-W) / R] where W=win rate, R=win/loss ratio','Example: 50% win rate, 1:2 RR → K = 0.5 - (0.5/2) = 25%','Use Half-Kelly (12.5%) to reduce volatility significantly','Never use full Kelly — drawdowns become psychologically extreme','Recalculate monthly as your win rate and RR evolve','Combine with 1% rule: take the lower of Kelly and 1%']},
+];
+
+// ── EA TEMPLATES ──
+const EA_T = {
+  smc:(p,t,r)=>`<span class="code-comment">// ============================================================
+// ForexElite Pro — SMC Order Block + CHoCH Expert Advisor
+// Pair: ${p} | Timeframe: ${t} | Risk: ${r}%
+// DISCLAIMER: Test on demo before live deployment
+// ============================================================</span>
+
+<span class="code-keyword">#property</span> strict
+<span class="code-keyword">input</span> <span class="code-type">double</span>  <span class="code-var">RiskPercent</span>  = <span class="code-number">${r}</span>;
+<span class="code-keyword">input</span> <span class="code-type">double</span>  <span class="code-var">MinRR</span>        = <span class="code-number">2.0</span>;
+<span class="code-keyword">input</span> <span class="code-type">int</span>     <span class="code-var">OB_Lookback</span>  = <span class="code-number">20</span>;
+<span class="code-keyword">input</span> <span class="code-type">int</span>     <span class="code-var">CHoCH_Period</span> = <span class="code-number">14</span>;
+<span class="code-keyword">input</span> <span class="code-type">double</span>  <span class="code-var">OB_Buffer</span>    = <span class="code-number">5.0</span>;
+<span class="code-keyword">input</span> <span class="code-type">int</span>     <span class="code-var">MagicNumber</span>  = <span class="code-number">202501</span>;
+<span class="code-keyword">input</span> <span class="code-type">int</span>     <span class="code-var">MaxTrades</span>    = <span class="code-number">3</span>;
+<span class="code-keyword">input</span> <span class="code-type">bool</span>    <span class="code-var">UseTrailStop</span> = <span class="code-keyword">true</span>;
+<span class="code-keyword">input</span> <span class="code-type">double</span>  <span class="code-var">TrailDist</span>    = <span class="code-number">20.0</span>;
+
+<span class="code-type">double</span>  <span class="code-var">g_OB_High</span>, <span class="code-var">g_OB_Low</span>;
+<span class="code-type">bool</span>    <span class="code-var">g_CHoCH_Bull</span>, <span class="code-var">g_CHoCH_Bear</span>;
+<span class="code-type">int</span>     <span class="code-var">g_OpenTrades</span> = <span class="code-number">0</span>;
+
+<span class="code-type">int</span> <span class="code-func">OnInit</span>() {
+   <span class="code-func">Print</span>(<span class="code-string">"ForexElite SMC EA Initialized on "</span>, _Symbol);
+   <span class="code-keyword">return</span>(<span class="code-var">INIT_SUCCEEDED</span>);
+}
+
+<span class="code-type">void</span> <span class="code-func">OnTick</span>() {
+   <span class="code-keyword">if</span>(<span class="code-func">IsNewBar</span>()) {
+      <span class="code-func">ScanOrderBlocks</span>();
+      <span class="code-func">DetectCHoCH</span>();
+      <span class="code-func">CheckEntry</span>();
+   }
+   <span class="code-keyword">if</span>(<span class="code-var">UseTrailStop</span>) <span class="code-func">TrailStops</span>();
+}
+
+<span class="code-type">void</span> <span class="code-func">ScanOrderBlocks</span>() {
+   <span class="code-keyword">for</span>(<span class="code-type">int</span> i=<span class="code-number">1</span>; i&lt;<span class="code-var">OB_Lookback</span>; i++) {
+      <span class="code-type">bool</span> impBull = <span class="code-func">iClose</span>(_Symbol,<span class="code-number">0</span>,i<span class="code-number">-1</span>) &gt; <span class="code-func">iOpen</span>(_Symbol,<span class="code-number">0</span>,i<span class="code-number">-1</span>)*<span class="code-number">1.002</span>;
+      <span class="code-type">bool</span> prevBear = <span class="code-func">iClose</span>(_Symbol,<span class="code-number">0</span>,i) &lt; <span class="code-func">iOpen</span>(_Symbol,<span class="code-number">0</span>,i);
+      <span class="code-keyword">if</span>(impBull && prevBear) {
+         <span class="code-var">g_OB_High</span> = <span class="code-func">iHigh</span>(_Symbol,<span class="code-number">0</span>,i);
+         <span class="code-var">g_OB_Low</span>  = <span class="code-func">iLow</span>(_Symbol,<span class="code-number">0</span>,i);
+         <span class="code-keyword">break</span>;
+      }
+   }
+}
+
+<span class="code-type">void</span> <span class="code-func">DetectCHoCH</span>() {
+   <span class="code-type">double</span> hh = <span class="code-func">iHigh</span>(_Symbol,<span class="code-number">0</span>,<span class="code-func">iHighest</span>(_Symbol,<span class="code-number">0</span>,<span class="code-var">MODE_HIGH</span>,<span class="code-var">CHoCH_Period</span>,<span class="code-number">2</span>));
+   <span class="code-type">double</span> ll = <span class="code-func">iLow</span>(_Symbol,<span class="code-number">0</span>,<span class="code-func">iLowest</span>(_Symbol,<span class="code-number">0</span>,<span class="code-var">MODE_LOW</span>,<span class="code-var">CHoCH_Period</span>,<span class="code-number">2</span>));
+   <span class="code-var">g_CHoCH_Bull</span> = <span class="code-func">iClose</span>(_Symbol,<span class="code-number">0</span>,<span class="code-number">1</span>) &gt; hh;
+   <span class="code-var">g_CHoCH_Bear</span> = <span class="code-func">iClose</span>(_Symbol,<span class="code-number">0</span>,<span class="code-number">1</span>) &lt; ll;
+}
+
+<span class="code-type">void</span> <span class="code-func">CheckEntry</span>() {
+   <span class="code-keyword">if</span>(<span class="code-var">g_OpenTrades</span> &gt;= <span class="code-var">MaxTrades</span>) <span class="code-keyword">return</span>;
+   <span class="code-type">double</span> p = <span class="code-func">Ask</span>;
+   <span class="code-keyword">if</span>(<span class="code-var">g_CHoCH_Bull</span> && p &gt;= <span class="code-var">g_OB_Low</span> && p &lt;= <span class="code-var">g_OB_High</span>) {
+      <span class="code-type">double</span> sl = <span class="code-var">g_OB_Low</span> - <span class="code-var">OB_Buffer</span>*_Point*<span class="code-number">10</span>;
+      <span class="code-func">SendOrder</span>(<span class="code-var">ORDER_TYPE_BUY</span>, <span class="code-func">CalcLots</span>(p-sl), sl, p+(p-sl)*<span class="code-var">MinRR</span>);
+   }
+   <span class="code-keyword">if</span>(<span class="code-var">g_CHoCH_Bear</span> && p &gt;= <span class="code-var">g_OB_Low</span> && p &lt;= <span class="code-var">g_OB_High</span>) {
+      <span class="code-type">double</span> sl = <span class="code-var">g_OB_High</span> + <span class="code-var">OB_Buffer</span>*_Point*<span class="code-number">10</span>;
+      <span class="code-func">SendOrder</span>(<span class="code-var">ORDER_TYPE_SELL</span>, <span class="code-func">CalcLots</span>(sl-p), sl, p-(sl-p)*<span class="code-var">MinRR</span>);
+   }
+}
+
+<span class="code-type">double</span> <span class="code-func">CalcLots</span>(<span class="code-type">double</span> d) {
+   <span class="code-type">double</span> b = <span class="code-func">AccountInfoDouble</span>(<span class="code-var">ACCOUNT_BALANCE</span>);
+   <span class="code-type">double</span> pv = <span class="code-func">SymbolInfoDouble</span>(_Symbol,<span class="code-var">SYMBOL_TRADE_TICK_VALUE</span>);
+   <span class="code-keyword">return</span> <span class="code-func">MathMax</span>(<span class="code-func">SymbolInfoDouble</span>(_Symbol,<span class="code-var">SYMBOL_VOLUME_MIN</span>),
+          <span class="code-func">MathMin</span>(b*<span class="code-var">RiskPercent</span>/<span class="code-number">100</span>/(d/_Point/<span class="code-number">10</span>*pv),
+                  <span class="code-func">SymbolInfoDouble</span>(_Symbol,<span class="code-var">SYMBOL_VOLUME_MAX</span>)));
+}
+
+<span class="code-type">void</span> <span class="code-func">SendOrder</span>(<span class="code-type">ENUM_ORDER_TYPE</span> t, <span class="code-type">double</span> l, <span class="code-type">double</span> sl, <span class="code-type">double</span> tp) {
+   <span class="code-var">MqlTradeRequest</span> req={}; <span class="code-var">MqlTradeResult</span> res={};
+   req.action=<span class="code-var">TRADE_ACTION_DEAL</span>; req.symbol=_Symbol; req.volume=l; req.type=t;
+   req.price=(t==<span class="code-var">ORDER_TYPE_BUY</span>)?<span class="code-func">Ask</span>:<span class="code-func">Bid</span>;
+   req.sl=sl; req.tp=tp; req.magic=<span class="code-var">MagicNumber</span>; req.comment=<span class="code-string">"FEP_SMC"</span>;
+   <span class="code-keyword">if</span>(!<span class="code-func">OrderSend</span>(req,res)) <span class="code-func">Print</span>(<span class="code-string">"Error: "</span>,<span class="code-func">GetLastError</span>());
+   <span class="code-keyword">else</span> <span class="code-var">g_OpenTrades</span>++;
+}
+
+<span class="code-type">void</span> <span class="code-func">TrailStops</span>() {
+   <span class="code-type">double</span> tr=<span class="code-var">TrailDist</span>*_Point*<span class="code-number">10</span>;
+   <span class="code-keyword">for</span>(<span class="code-type">int</span> i=<span class="code-func">PositionsTotal</span>()-<span class="code-number">1</span>;i&gt;=<span class="code-number">0</span>;i--) {
+      <span class="code-keyword">if</span>(<span class="code-func">PositionGetSymbol</span>(i)!=_Symbol||<span class="code-func">PositionGetInteger</span>(<span class="code-var">POSITION_MAGIC</span>)!=<span class="code-var">MagicNumber</span>) <span class="code-keyword">continue</span>;
+      <span class="code-type">bool</span> isBuy=<span class="code-func">PositionGetInteger</span>(<span class="code-var">POSITION_TYPE</span>)==<span class="code-var">POSITION_TYPE_BUY</span>;
+      <span class="code-var">MqlTradeRequest</span> req={}; <span class="code-var">MqlTradeResult</span> res={};
+      req.action=<span class="code-var">TRADE_ACTION_SLTP</span>; req.position=<span class="code-func">PositionGetTicket</span>(i);
+      req.sl=isBuy?<span class="code-func">Bid</span>-tr:<span class="code-func">Ask</span>+tr; req.tp=<span class="code-func">PositionGetDouble</span>(<span class="code-var">POSITION_TP</span>);
+      <span class="code-func">OrderSend</span>(req,res);
+   }
+}
+
+<span class="code-type">bool</span> <span class="code-func">IsNewBar</span>() {
+   <span class="code-keyword">static</span> <span class="code-type">datetime</span> t=<span class="code-number">0</span>; <span class="code-type">datetime</span> c=<span class="code-func">iTime</span>(_Symbol,<span class="code-number">0</span>,<span class="code-number">0</span>);
+   <span class="code-keyword">if</span>(c!=t){t=c;<span class="code-keyword">return</span>(<span class="code-keyword">true</span>);} <span class="code-keyword">return</span>(<span class="code-keyword">false</span>);
+}`,
+};
+EA_T.sr=EA_T.smc; EA_T.ma=EA_T.smc; EA_T.fvg=EA_T.smc; EA_T.breakout=EA_T.smc;
+
+// ── BUILD FUNCTIONS ──
+function buildTicker(){
+  const c=document.getElementById('ticker');
+  c.innerHTML=[...TICKER_PAIRS,...TICKER_PAIRS].map(t=>`
+    <div class="ticker-item">
+      <span class="ticker-pair">${t.pair}</span>
+      <span class="ticker-price">${t.price}</span>
+      <span class="ticker-change ${t.up?'up':'down'}">${t.change}</span>
+    </div>`).join('');
+}
+function buildSessions(){
+  document.getElementById('sessions-row').innerHTML=SESSIONS.map(s=>`
+    <div class="session-card ${s.active?'active':''}">
+      <div class="session-name">${s.name}</div>
+      <div class="session-time">${s.open} – ${s.close} ${s.tz}</div>
+      <div class="session-pairs">${s.pairs}</div>
+      ${s.active?'<div class="session-live">LIVE NOW</div>':''}
+    </div>`).join('');
+}
+function buildBrokers(){
+  document.getElementById('broker-grid').innerHTML=BROKERS.map(b=>`
+    <div class="broker-card ${b.status}" onclick="selectBroker('${b.name}')">
+      <div class="broker-badge"></div>
+      <div class="broker-logo">${b.name}</div>
+      <div class="broker-status ${b.status}">${b.status.toUpperCase()}</div>
+    </div>`).join('');
+}
+function buildPairs(){
+  document.getElementById('pairs-body').innerHTML=PAIRS_DATA.map(p=>`
+    <tr>
+      <td class="pair-name">${p.pair}</td>
+      <td>${p.bid}</td><td>${p.ask}</td>
+      <td class="pair-spread">${p.spread}</td>
+      <td><div class="pair-volatility-bar"><div class="pair-volatility-fill" style="width:${p.vol}%"></div></div></td>
+      <td style="color:var(--text-secondary);font-size:10px;">${p.session}</td>
+      <td><span class="bias-badge ${p.bias}">${p.bias.toUpperCase()}</span></td>
+      <td><span class="bias-badge ${p.signal==='BUY'?'bull':p.signal==='SELL'?'bear':'neut'}">${p.signal}</span></td>
+    </tr>`).join('');
+}
+function buildStrategyCards(id,data){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.innerHTML=data.map(s=>`
+    <div class="strat-card" onclick="toggleStrategy(this)">
+      <span class="strat-badge ${s.badge}">${s.badgeText}</span>
+      <div class="strat-title">${s.title}</div>
+      <div class="strat-desc">${s.desc}</div>
+      <div class="strat-tags">${s.tags.map(t=>`<span class="strat-tag">${t}</span>`).join('')}</div>
+      <div class="strat-expand">
+        <div class="strat-expand-title">ENTRY RULES</div>
+        <ul class="strat-rules">${s.rules.map(r=>`<li>${r}</li>`).join('')}</ul>
+      </div>
+    </div>`).join('');
+}
+function toggleStrategy(card){card.querySelector('.strat-expand').classList.toggle('open');}
+
+// ── SIGNALS ──
+const PRICE_RANGES={XAUUSD:{b:2318,p:0.1},EURUSD:{b:1.0841,p:0.0001},GBPUSD:{b:1.2653,p:0.0001},USDJPY:{b:154.32,p:0.01},GBPJPY:{b:195.24,p:0.01},AUDUSD:{b:0.6531,p:0.0001},EURJPY:{b:167.34,p:0.01}};
+const STRATS_LIST=['SMC OB','FVG ENTRY','S&R BOUNCE','CHoCH TRADE','LIQ SWEEP','BRK RETEST'];
+
+function generateSignals(){
+  const out=document.getElementById('signal-output');
+  const pair=document.getElementById('sig-pair').value.split(' — ')[0];
+  const tf=document.getElementById('sig-tf').value.split(' — ')[0];
+  out.innerHTML='<div style="display:flex;align-items:center;gap:10px;padding:20px;font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--gold);">⏳ SCANNING MARKET STRUCTURE...</div>';
+  setTimeout(()=>{
+    const signals=mockSignals(pair,tf);
+    if(!signals.length){out.innerHTML='<div class="no-signal"><div class="no-signal-icon">🔍</div><p style="font-family:\'JetBrains Mono\',monospace;font-size:11px;letter-spacing:1px;">NO SIGNALS — MARKET NEUTRAL</p></div>';return;}
+    out.innerHTML=signals.map(renderSignal).join('');
+    showToast(`${signals.length} signal(s) generated for ${pair} on ${tf}`);
+  },1200);
+}
+function mockSignals(pair,tf){
+  const pr=PRICE_RANGES[pair]||{b:1,p:0.0001};
+  const n=Math.floor(Math.random()*3)+1;
+  const dp=pair==='XAUUSD'?2:pair.includes('JPY')?3:5;
+  return Array.from({length:n},()=>{
+    const buy=Math.random()>.4;
+    const sl=Math.floor(Math.random()*30)+15;
+    const rr=[2,2.5,3][Math.floor(Math.random()*3)];
+    const entry=pr.b+(Math.random()-.5)*pr.p*20;
+    return {pair,tf,dir:buy?'buy':'sell',strategy:STRATS_LIST[Math.floor(Math.random()*STRATS_LIST.length)],
+      entry:entry.toFixed(dp),sl:(buy?entry-sl*pr.p:entry+sl*pr.p).toFixed(dp),
+      tp:(buy?entry+sl*pr.p*rr:entry-sl*pr.p*rr).toFixed(dp),rr,slPips:sl,strength:Math.floor(Math.random()*2)+3};
+  });
+}
+function renderSignal(s){
+  const dots=[1,2,3,4,5].map(d=>`<div class="strength-dot ${d<=s.strength?'active':''}"></div>`).join('');
+  return `<div class="signal-card ${s.dir}">
+    <div class="signal-direction ${s.dir}">${s.dir==='buy'?'▲':'▼'}</div>
+    <div class="signal-info">
+      <div class="signal-pair">${s.pair}</div>
+      <div class="signal-strategy">${s.strategy}</div>
+      <div class="signal-meta">${s.tf} | SL:${s.slPips}p | R:R 1:${s.rr}</div>
+      <div class="signal-strength">${dots}</div>
+    </div>
+    <div class="signal-levels">
+      <div class="level-row"><span class="level-tag tf">${s.tf}</span></div>
+      <div class="level-row"><span class="level-tag entry">ENTRY</span><span>${s.entry}</span></div>
+      <div class="level-row"><span class="level-tag sl">SL</span><span>${s.sl}</span></div>
+      <div class="level-row"><span class="level-tag tp">TP</span><span>${s.tp}</span></div>
+    </div>
+  </div>`;
+}
+function togglePill(p){p.classList.toggle('active');}
+
+// ── CALCULATORS ──
+function calcLotSize(){
+  const b=parseFloat(document.getElementById('acc-balance').value)||10000;
+  const r=parseFloat(document.getElementById('risk-pct').value)||1;
+  const sl=parseFloat(document.getElementById('sl-pips').value)||30;
+  document.getElementById('lot-result').textContent=((b*r/100)/(sl*10)).toFixed(2)+' LOT';
+  showToast('Lot size calculated');
+}
+function calcPipValue(){
+  const l=parseFloat(document.getElementById('pip-lot').value)||0.1;
+  const p=parseFloat(document.getElementById('pip-count').value)||50;
+  const v=parseFloat(document.getElementById('pip-type').value)||10;
+  document.getElementById('pip-result').textContent='$'+(l*p*v).toFixed(2);
+  showToast('Pip value calculated');
+}
+function calcRR(){
+  const e=parseFloat(document.getElementById('rr-entry').value);
+  const sl=parseFloat(document.getElementById('rr-sl').value);
+  const tp=parseFloat(document.getElementById('rr-tp').value);
+  const buy=document.getElementById('rr-dir').value==='buy';
+  if(!e||!sl||!tp)return;
+  const r=Math.abs(e-sl), rw=Math.abs(tp-e);
+  document.getElementById('rr-result').textContent='1 : '+(rw/r).toFixed(2);
+  showToast('R:R calculated');
+}
+
+// ── EA ──
+function updateEA(){
+  const s=document.getElementById('ea-strategy').value;
+  const p=document.getElementById('ea-pair').value;
+  const t=document.getElementById('ea-tf').value;
+  const r=document.getElementById('ea-risk').value;
+  const names={smc:'SMC_OB',sr:'SR_Bounce',ma:'MA_Cross',fvg:'FVG_Entry',breakout:'Breakout'};
+  document.getElementById('ea-filename').textContent=`ForexElite_${names[s]}_${p}.mq5`;
+  document.getElementById('ea-code').innerHTML=(EA_T[s]||EA_T.smc)(p,t,r);
+}
+function copyCode(){
+  navigator.clipboard.writeText(document.getElementById('ea-code').innerText)
+    .then(()=>showToast('EA code copied to clipboard!'))
+    .catch(()=>showToast('Select and copy the code manually'));
+}
+
+// ── BROKER ──
+function selectBroker(n){document.getElementById('broker-select').value=n;showToast(`Selected: ${n}`);}
+function connectBroker(){
+  showToast('Connecting... Check MT5 for confirmation.');
+  setTimeout(()=>showToast('⚠ Always test on DEMO first!'),2000);
+}
+
+// ── NAV / DRAWER ──
+function toggleDrawer(){
+  const d=document.getElementById('nav-drawer');
+  const h=document.getElementById('hamburger');
+  d.classList.toggle('open');
+  h.classList.toggle('open');
+}
+function drawerNav(id){
+  document.getElementById('nav-drawer').classList.remove('open');
+  document.getElementById('hamburger').classList.remove('open');
+  if(id!=='home')scrollTo(id);
+}
+function scrollTo(id){const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
+
+// ── TABS ──
+function switchTab(name){
+  const tabs=['smc','price','sr','patterns','candlestick','fundamental','mm'];
+  document.querySelectorAll('.lib-tab').forEach((t,i)=>t.classList.toggle('active',tabs[i]===name));
+  document.querySelectorAll('.lib-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+// ── MODAL ──
+function openModal(type){
+  const c=document.getElementById('modal-content');
+  if(type==='register'){
+    c.innerHTML=`
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--gold);margin-bottom:6px;">GET STARTED</div>
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:20px;line-height:1.6;">Create your account to save preferences, broker connections, and EA configurations.</p>
+      <div style="margin-bottom:12px;"><label style="display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-bottom:5px;">Full Name</label><input type="text" placeholder="Your name" style="width:100%;background:var(--bg-panel);border:1px solid var(--bg-border);color:var(--text-primary);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;border-radius:4px;"></div>
+      <div style="margin-bottom:12px;"><label style="display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-bottom:5px;">Email</label><input type="email" placeholder="trader@email.com" style="width:100%;background:var(--bg-panel);border:1px solid var(--bg-border);color:var(--text-primary);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;border-radius:4px;"></div>
+      <div style="margin-bottom:20px;"><label style="display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-bottom:5px;">Password</label><input type="password" placeholder="••••••••" style="width:100%;background:var(--bg-panel);border:1px solid var(--bg-border);color:var(--text-primary);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;border-radius:4px;"></div>
+      <button class="btn-primary" style="width:100%;" onclick="closeModal();showToast('Welcome to ForexElite Pro!')">CREATE ACCOUNT</button>`;
+  }
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+// ── TOAST ──
+function showToast(msg){
+  const c=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className='toast'; t.textContent=msg;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(),3100);
+}
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded',()=>{
+  buildTicker(); buildSessions(); buildBrokers(); buildPairs();
+  buildStrategyCards('smc-cards',SMC_STRATEGIES);
+  buildStrategyCards('price-cards',PRICE_STRATEGIES);
+  buildStrategyCards('sr-cards',SR_STRATEGIES);
+  buildStrategyCards('patterns-cards',PATTERN_STRATEGIES);
+  buildStrategyCards('candlestick-cards',CANDLE_STRATEGIES);
+  buildStrategyCards('fundamental-cards',FUND_STRATEGIES);
+  buildStrategyCards('mm-cards',MM_STRATEGIES);
+  updateEA();
+
+  // live price flicker
+  setInterval(()=>{
+    document.querySelectorAll('.ticker-price').forEach(t=>{
+      const v=parseFloat(t.textContent);
+      if(!isNaN(v)) t.textContent=(v+(Math.random()-.5)*0.001).toFixed(v>100?2:5);
+    });
+  },3000);
+});
+</script>
+</body>
+</html>

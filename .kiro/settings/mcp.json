@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "exa": {
+      "url": "https://mcp.exa.ai/mcp",
+      "env": {
+        "EXA_API_KEY": "1fc09282-a072-4fc3-97ba-4e20c0d51c49"
+      },
+      "autoApprove": [
+        "web_search_exa",
+        "web_search_exa"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "autoApprove": [
+        "query-docs"
+      ]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ]
+    }
+  }
+}
