@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Toggle } from "@/components/ui/toggle";
 
 const strategyTypes = [
@@ -389,23 +388,19 @@ export function EAGenerator() {
   const [martingale, setMartingale] = useState(false);
   const [autoLot, setAutoLot] = useState(true);
 
-  const [generatedCode, setGeneratedCode] = useState("");
-
-  useEffect(() => {
-    setGeneratedCode(
-      generateMQL5Code({
-        strategy,
-        riskPercent: parseFloat(riskPercent) || 2,
-        lotSize: parseFloat(lotSize) || 0.1,
-        maxSpread: parseFloat(maxSpread) || 30,
-        stopLoss: parseInt(stopLoss) || 50,
-        takeProfit: parseInt(takeProfit) || 100,
-        trailingStop,
-        newsFilter,
-        martingale,
-        autoLot,
-      })
-    );
+  const generatedCode = useMemo(() => {
+    return generateMQL5Code({
+      strategy,
+      riskPercent: parseFloat(riskPercent) || 2,
+      lotSize: parseFloat(lotSize) || 0.1,
+      maxSpread: parseFloat(maxSpread) || 30,
+      stopLoss: parseInt(stopLoss) || 50,
+      takeProfit: parseInt(takeProfit) || 100,
+      trailingStop,
+      newsFilter,
+      martingale,
+      autoLot,
+    });
   }, [strategy, riskPercent, lotSize, maxSpread, stopLoss, takeProfit, trailingStop, newsFilter, martingale, autoLot]);
 
   return (
@@ -413,7 +408,7 @@ export function EAGenerator() {
       <div className="max-w-[1600px] mx-auto px-6">
         <div className="mb-10">
           <div className="text-[10px] tracking-[3px] uppercase text-[#C9A84C] font-mono mb-2.5">
-            // MQL5 CODE GENERATOR
+            {/* MQL5 CODE GENERATOR */}
           </div>
           <h2 className="text-[clamp(32px,6vw,64px)] font-['Bebas_Neue'] leading-none tracking-[1px] mb-3.5 text-white">
             EA GENERATOR

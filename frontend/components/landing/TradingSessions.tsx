@@ -12,7 +12,7 @@ const TradingSessions: React.FC = () => {
     <section id="sessions" className="max-w-[1400px] mx-auto px-6 py-16">
       <div className="text-center mb-12">
         <span className="text-[#C9A84C] uppercase tracking-wider text-sm font-mono">
-          // MARKET HOURS
+          {/* MARKET HOURS */}
         </span>
         <h2 className="text-white text-5xl md:text-6xl font-['Bebas_Neue'] mt-3 tracking-wide">
           TRADING SESSIONS

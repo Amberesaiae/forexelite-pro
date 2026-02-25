@@ -100,7 +100,7 @@ export async function apiFetch<T>(
     }
 
     return { data: data as T };
-  } catch (err) {
+  } catch {
     return { error: { detail: 'Network error' } };
   }
 }

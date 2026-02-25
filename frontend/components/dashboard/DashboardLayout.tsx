@@ -36,6 +36,60 @@ const sidebarItems = [
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
+function SidebarContent({ pathname }: { pathname: string }) {
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex h-14 items-center border-b border-[#131E32] px-5">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="text-lg font-semibold tracking-[3px] text-[#C9A84C]">
+            FOREXELITE
+          </span>
+          <span className="bg-[#C9A84C] text-[#040810] text-[9px] px-1.5 py-0.5 rounded font-bold">
+            PRO
+          </span>
+        </Link>
+      </div>
+      <nav className="flex-1 space-y-1 px-3 py-4">
+        {sidebarItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-[#C9A84C]/10 text-[#C9A84C]"
+                  : "text-[#8899BB] hover:bg-[#111929] hover:text-[#EEF2FF]"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <item.icon className="h-4 w-4" />
+                {item.name}
+              </div>
+              {item.badge && (
+                <span className="bg-[#FF4560]/20 text-[#FF4560] text-[10px] px-2 py-0.5 rounded-full">
+                  {item.badge}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="border-t border-[#131E32] p-4">
+        <div className="flex items-center gap-3 rounded-lg bg-[#0C1525] p-3">
+          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#7A6130] to-[#C9A84C] flex items-center justify-center text-[#040810] font-bold text-sm">
+            JT
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <p className="truncate text-sm font-medium text-[#EEF2FF]">John Trader</p>
+            <p className="truncate text-[10px] text-[#C9A84C] font-mono">PRO PLAN</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
@@ -110,64 +164,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }, 1000);
 
     return () => {
-      offlineCheckInterval.current && clearInterval(offlineCheckInterval.current);
-      wsRefs.current.forEach((ws) => ws.close());
-      wsRefs.current.clear();
+      if (offlineCheckInterval.current) clearInterval(offlineCheckInterval.current);
+      const wsMap = wsRefs.current;
+      wsMap.forEach((ws) => ws.close());
+      wsMap.clear();
     };
-  }, [connectWebSocket]);
-
-  const SidebarContent = () => (
-    <div className="flex h-full flex-col">
-      <div className="flex h-14 items-center border-b border-[#131E32] px-5">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-lg font-semibold tracking-[3px] text-[#C9A84C]">
-            FOREXELITE
-          </span>
-          <span className="bg-[#C9A84C] text-[#040810] text-[9px] px-1.5 py-0.5 rounded font-bold">
-            PRO
-          </span>
-        </Link>
-      </div>
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {sidebarItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              onClick={() => setMobileOpen(false)}
-              className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-[#C9A84C]/10 text-[#C9A84C]"
-                  : "text-[#8899BB] hover:bg-[#111929] hover:text-[#EEF2FF]"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <item.icon className="h-4 w-4" />
-                {item.name}
-              </div>
-              {item.badge && (
-                <span className="bg-[#FF4560]/20 text-[#FF4560] text-[10px] px-2 py-0.5 rounded-full">
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="border-t border-[#131E32] p-4">
-        <div className="flex items-center gap-3 rounded-lg bg-[#0C1525] p-3">
-          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#7A6130] to-[#C9A84C] flex items-center justify-center text-[#040810] font-bold text-sm">
-            JT
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <p className="truncate text-sm font-medium text-[#EEF2FF]">John Trader</p>
-            <p className="truncate text-[10px] text-[#C9A84C] font-mono">PRO PLAN</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  }, [connectWebSocket, updatePrice]);
 
   return (
     <div className="min-h-screen bg-[#040810]">
@@ -180,7 +182,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className={isAgentOffline ? "pt-10" : ""}>
       <div className="hidden md:fixed md:inset-y-0 md:z-50 md:flex md:w-[220px] md:flex-col">
         <div className="flex h-full flex-col bg-[#060B18]">
-          <SidebarContent />
+          <SidebarContent pathname={pathname} />
         </div>
       </div>
 
@@ -195,7 +197,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-[220px] border-r border-[#131E32] bg-[#060B18] p-0">
-          <SidebarContent />
+          <SidebarContent pathname={pathname} />
         </SheetContent>
       </Sheet>
 

@@ -93,8 +93,8 @@ export function AccountOverview() {
 
       <Card className="bg-[#090F1E] border-slate-800">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-slate-400">
-            Today's P&L
+        <CardTitle className="text-sm font-medium text-slate-400">
+            Today&apos;s P&amp;L
           </CardTitle>
         </CardHeader>
         <CardContent>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, CandlestickSeries } from "lightweight-charts";
+import { useEffect, useRef, useMemo } from "react";
+import { createChart, IChartApi, ISeriesApi, CandlestickData, CandlestickSeries } from "lightweight-charts";
 
 interface PriceChartProps {
   symbol: string;
@@ -20,8 +20,18 @@ export function PriceChart({ symbol, timeframe, onSymbolChange, onTimeframeChang
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const [currentPrice, setCurrentPrice] = useState<number>(0);
-  const [priceChange, setPriceChange] = useState<number>(0);
+
+  const { currentPrice, priceChange } = useMemo(() => {
+    if (!candles || candles.length === 0) {
+      return { currentPrice: 0, priceChange: 0 };
+    }
+    const last = candles[candles.length - 1];
+    const first = candles[0];
+    return {
+      currentPrice: last.close,
+      priceChange: ((last.close - first.open) / first.open) * 100
+    };
+  }, [candles]);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -85,15 +95,9 @@ export function PriceChart({ symbol, timeframe, onSymbolChange, onTimeframeChang
 
     if (candles && candles.length > 0) {
       seriesRef.current.setData(candles);
-      const last = candles[candles.length - 1];
-      const first = candles[0];
-      setCurrentPrice(last.close);
-      setPriceChange(((last.close - first.open) / first.open) * 100);
       chartRef.current?.timeScale().fitContent();
     } else if (!isLoading) {
       seriesRef.current.setData([]);
-      setCurrentPrice(0);
-      setPriceChange(0);
     }
   }, [candles, isLoading]);
 

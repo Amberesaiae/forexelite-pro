@@ -77,7 +77,7 @@ export default function RiskManagement() {
     <section id="risk" className="max-w-[1400px] mx-auto px-6 py-16">
       <div className="text-center mb-12">
         <p className="text-[#C9A84C] font-mono uppercase tracking-wider text-sm mb-2">
-          // CAPITAL PROTECTION
+          {/* CAPITAL PROTECTION */}
         </p>
         <h2 className="text-5xl md:text-6xl font-bold text-white tracking-wide font-['Bebas_Neue']">
           RISK MANAGEMENT

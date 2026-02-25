@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,14 +11,26 @@ import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 
+interface TickerData {
+  pair: string;
+  price: string;
+  change: string;
+  up: boolean;
+}
+
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(12, "Password must be at least 12 characters"),
 });
 
 const signupSchema = z.object({
   email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string()
+    .min(12, "Password must be at least 12 characters")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one digit")
+    .regex(/[^a-zA-Z0-9]/, "Password must contain at least one special character"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -28,12 +40,85 @@ const signupSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 type SignupFormData = z.infer<typeof signupSchema>;
 
-const tickerPairs = [
-  { pair: "EURUSD", price: "1.08428", change: "+0.42%", up: true },
-  { pair: "GBPUSD", price: "1.26910", change: "+0.31%", up: true },
-  { pair: "XAUUSD", price: "2034.50", change: "+0.55%", up: true },
-  { pair: "USDJPY", price: "149.82", change: "0.00%", up: false },
-];
+const TICKER_SYMBOLS = ['EURUSD', 'GBPUSD', 'XAUUSD', 'USDJPY'];
+
+function useTickerData() {
+  const [tickerData, setTickerData] = useState<TickerData[]>(
+    TICKER_SYMBOLS.map(symbol => ({ pair: symbol, price: '—', change: '—', up: false }))
+  );
+  const wsRef = useRef<WebSocket | null>(null);
+  const pricesRef = useRef<Record<string, { price: number; change: number }>>({});
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
+    const pollPrices = async () => {
+      try {
+        const response = await fetch(`/api/prices?symbols=${TICKER_SYMBOLS.join(',')}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (errorData.code === 429) {
+            console.warn('TwelveData API rate limit reached, using placeholder data');
+            return;
+          }
+          return;
+        }
+        
+        const data = await response.json();
+        
+        // Handle both single and multiple symbol responses
+        const prices = Array.isArray(data) ? data : [data];
+        
+        prices.forEach((priceData: { symbol?: string; price?: string }) => {
+          const symbol = priceData.symbol || Object.keys(data)[0];
+          if (symbol && priceData.price) {
+            const prev = pricesRef.current[symbol];
+            const currentPrice = parseFloat(priceData.price);
+            const change = prev ? ((currentPrice - prev.price) / prev.price) * 100 : 0;
+            
+            pricesRef.current[symbol] = { price: currentPrice, change };
+            
+            setTickerData(prevData => 
+              prevData.map(p => 
+                p.pair === symbol 
+                  ? { 
+                      ...p, 
+                      price: currentPrice.toFixed(symbol.includes('JPY') ? 2 : 5),
+                      change: `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`,
+                      up: change >= 0
+                    }
+                  : p
+              )
+            );
+          }
+        });
+      } catch (error) {
+        console.error('Error polling prices:', error);
+      }
+    };
+
+    // Initial fetch
+    pollPrices();
+
+    // Set up polling interval (30 seconds to avoid rate limits)
+    intervalId = setInterval(pollPrices, POLL_INTERVAL);
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  return tickerData;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,6 +127,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [shake, setShake] = useState(false);
+  const tickerPairs = useTickerData();
   
   const setSession = useAuthStore((state) => state.setSession);
 
@@ -58,6 +144,12 @@ export default function LoginPage() {
   const triggerShake = () => {
     setShake(true);
     setTimeout(() => setShake(false), 500);
+  };
+
+  // Clear error when switching tabs
+  const handleTabChange = (tab: "login" | "signup") => {
+    setActiveTab(tab);
+    setError(null);
   };
 
   const handleLogin = async (data: LoginFormData) => {
@@ -181,7 +273,7 @@ export default function LoginPage() {
         <div className="flex bg-[#0C1525] rounded-[6px] p-1 mb-6">
           <button
             type="button"
-            onClick={() => setActiveTab("login")}
+            onClick={() => handleTabChange("login")}
             className={`flex-1 py-2 px-4 rounded-[4px] text-[13px] font-bold transition-colors ${
               activeTab === "login"
                 ? "bg-[#C9A84C] text-[#080E1A]"
@@ -192,7 +284,7 @@ export default function LoginPage() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("signup")}
+            onClick={() => handleTabChange("signup")}
             className={`flex-1 py-2 px-4 rounded-[4px] text-[13px] font-bold transition-colors ${
               activeTab === "signup"
                 ? "bg-[#C9A84C] text-[#080E1A]"
@@ -265,7 +357,7 @@ export default function LoginPage() {
                   Don&apos;t have an account?{" "}
                   <button
                     type="button"
-                    onClick={() => setActiveTab("signup")}
+                    onClick={() => handleTabChange("signup")}
                     className="text-[#C9A84C] hover:underline"
                   >
                     Sign up
@@ -351,7 +443,7 @@ export default function LoginPage() {
                   Already have an account?{" "}
                   <button
                     type="button"
-                    onClick={() => setActiveTab("login")}
+                    onClick={() => handleTabChange("login")}
                     className="text-[#C9A84C] hover:underline"
                   >
                     Sign in

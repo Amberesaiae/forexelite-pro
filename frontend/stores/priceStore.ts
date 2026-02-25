@@ -11,7 +11,7 @@ export interface PriceStore {
   update: (pair: string, tick: { bid: number; ask: number }) => void;
 }
 
-let flashTimeouts: Record<string, NodeJS.Timeout> = {};
+const flashTimeouts: Record<string, NodeJS.Timeout> = {};
 
 export const usePriceStore = create<PriceStore>()((set, get) => ({
   prices: {},

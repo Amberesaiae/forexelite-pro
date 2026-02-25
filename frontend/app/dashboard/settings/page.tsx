@@ -92,12 +92,28 @@ export default function SettingsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { data: prefsData, isLoading } = useQuery({
+  const { data: prefsData, isLoading, error } = useQuery({
     queryKey: ["preferences"],
     queryFn: () => apiGet<{ preferences: UserPreferences }>("/api/v1/onboarding/preferences"),
+    retry: 1,
   });
 
   const preferences = prefsData?.data?.preferences;
+
+  // Show default preferences if not logged in or error
+  const defaultPreferences: UserPreferences = {
+    risk_per_trade: 1.0,
+    daily_loss_limit: 5.0,
+    max_spread: 30,
+    default_lot_size: 0.01,
+    default_sl_pips: 50,
+    default_tp_pips: 100,
+    trade_alerts: true,
+    signal_notifications: true,
+    ea_status_updates: true,
+  };
+
+  const displayPrefs = preferences || defaultPreferences;
 
   const saveMutation = useMutation({
     mutationFn: (data: Partial<UserPreferences>) => 
@@ -113,7 +129,7 @@ export default function SettingsPage() {
   });
 
   const handleChange = (field: keyof UserPreferences, value: number | boolean) => {
-    if (!preferences) return;
+    if (!displayPrefs) return;
     
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -123,7 +139,7 @@ export default function SettingsPage() {
     }, 1000);
   };
 
-  if (isLoading || !preferences) {
+  if (isLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
@@ -170,7 +186,7 @@ export default function SettingsPage() {
                   step={item.step}
                   min={item.min}
                   max={item.max}
-                  defaultValue={preferences[item.key]}
+                  defaultValue={displayPrefs[item.key]}
                   onChange={(e) => handleChange(item.key, parseFloat(e.target.value) || 0)}
                   className="w-20 px-2 py-1 rounded bg-[#0C1525] border border-[#131E32] text-[12px] font-mono text-right text-[#EEF2FF]"
                 />
@@ -197,7 +213,7 @@ export default function SettingsPage() {
                   step={item.step}
                   min={item.min}
                   max={item.max}
-                  defaultValue={preferences[item.key]}
+                  defaultValue={displayPrefs[item.key]}
                   onChange={(e) => handleChange(item.key, parseFloat(e.target.value) || 0)}
                   className="w-24 px-2 py-1 rounded bg-[#0C1525] border border-[#131E32] text-[12px] font-mono text-right text-[#EEF2FF]"
                 />
@@ -218,16 +234,16 @@ export default function SettingsPage() {
             <div key={item.key} className="flex items-center justify-between py-3" style={{ borderBottom: i < 2 ? "1px solid #131E32" : "none" }}>
               <span className="text-[12px]" style={{ color: "#8899BB" }}>{item.label}</span>
               <button
-                onClick={() => handleChange(item.key, !preferences[item.key])}
+                onClick={() => handleChange(item.key, !displayPrefs[item.key])}
                 className="relative w-12 h-6 rounded-full transition-colors"
                 style={{ 
-                  backgroundColor: preferences[item.key] ? "#00E5A0" : "#131E32",
+                  backgroundColor: displayPrefs[item.key] ? "#00E5A0" : "#131E32",
                 }}
               >
                 <span
                   className="absolute top-1 w-4 h-4 rounded-full bg-white transition-transform"
                   style={{ 
-                    left: preferences[item.key] ? "26px" : "4px",
+                    left: displayPrefs[item.key] ? "26px" : "4px",
                   }}
                 />
               </button>

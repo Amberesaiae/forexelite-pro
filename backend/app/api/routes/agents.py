@@ -72,13 +72,17 @@ async def pair_agent(
     # Extract prefix (first 8 chars)
     prefix = raw_key[:8]
 
-    # Insert agent record
+    # Insert agent record with required fields
     agent_data = {
         "user_id": user_id,
         "pairing_key_hash": hashed_key,
         "pairing_key_prefix": prefix,
         "is_connected": False,
         "broker_connection_id": request.broker_connection_id,
+        "agent_name": "default",  # Required field
+        "terminal_server": "",  # Required field - will be updated by agent
+        "login": "",  # Required field - will be updated by agent
+        "password_encrypted": "",  # Required field - will be updated by agent
     }
 
     response = supabase.table("mt5_agents").insert(agent_data).execute()

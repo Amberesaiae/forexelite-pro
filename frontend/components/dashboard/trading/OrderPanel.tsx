@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { usePriceStore } from "@/stores";
 
 interface OrderPanelProps {
   onSubmit?: (order: OrderData) => void;
@@ -36,10 +35,6 @@ export function OrderPanel({ onSubmit, isLoading = false }: OrderPanelProps) {
   const [volume, setVolume] = useState(0.01);
   const [slPips, setSlPips] = useState(20);
   const [tpPips, setTpPips] = useState(40);
-
-  const prices = usePriceStore((s) => s.prices);
-  const currentTick = prices[symbol];
-  const currentPrice = currentTick?.bid || 0;
 
   const pipValue = useMemo(() => {
     const pipSizes: Record<string, number> = {

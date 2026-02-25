@@ -92,6 +92,7 @@ export default function DashboardPage() {
     },
     refetchInterval: 30000,
   });
+  void agentStatus; // Used for agent status display
 
   const runningEAs = deployments.filter((d) => d.status === "running").slice(0, 3);
 
@@ -108,17 +109,40 @@ export default function DashboardPage() {
     return sum + Math.round(priceDiff * pipMultiplier * p.volume * 10) / 10;
   }, 0);
 
-  const todayPnL = totalPnL;
-  const winRate = 72;
-  const dailyDrawdown = 1.2;
+  // Calculate win rate from closed trades (would need a trades endpoint)
+  const winRate = positions.length > 0 
+    ? Math.round((positions.filter(p => p.pnl > 0).length / positions.length) * 100)
+    : 0;
+  
+  // Calculate daily drawdown
+  const closedTrades = positions.filter(p => p.pnl < 0);
+  const dailyDrawdown = closedTrades.length > 0 
+    ? Math.abs(closedTrades.reduce((sum, p) => sum + p.pnl, 0))
+    : 0;
 
-  const account = accountData || {
-    balance: 10000,
-    equity: 10043.20,
-    margin: 108.43,
-    free_margin: 9891.57,
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'short', 
+    year: 'numeric' 
+  }).toUpperCase();
+
+  const account = accountData ? {
+    balance: accountData.balance,
+    equity: accountData.equity,
+    margin: accountData.margin,
+    free_margin: accountData.free_margin,
+    leverage: accountData.leverage,
+  } : {
+    balance: 0,
+    equity: 0,
+    margin: 0,
+    free_margin: 0,
     leverage: 500,
   };
+
+  const pnlChange = account.equity - account.balance;
 
   return (
     <DashboardLayout>
@@ -127,7 +151,7 @@ export default function DashboardPage() {
           OVERVIEW
         </h1>
         <p className="text-[12px] font-mono mt-1" style={{ color: "#8899BB" }}>
-          MONDAY 23 FEB 2026 — LONDON SESSION OPEN
+          {dateStr} — LONDON SESSION OPEN
         </p>
       </div>
 
@@ -136,11 +160,11 @@ export default function DashboardPage() {
         <StatCard
           label="Total Equity"
           value={account.equity.toFixed(2)}
-          change="+$43.20"
-          changeType="up"
+          change={`${pnlChange >= 0 ? '+' : ''}${pnlChange.toFixed(2)}`}
+          changeType={pnlChange >= 0 ? "up" : "down"}
           accentColor="#C9A84C"
           unit="$"
-          subtitle="+0.43% today"
+          subtitle={accountData ? "current" : "no data"}
         />
         <StatCard
           label="Open P&L"
@@ -153,21 +177,21 @@ export default function DashboardPage() {
         />
         <StatCard
           label="Win Rate"
-          value={winRate}
-          change="+3.1%"
+          value={String(winRate)}
+          change={positions.length > 0 ? `${positions.length} trades` : "no trades"}
           changeType="up"
           accentColor="#3D85FF"
           unit="%"
-          subtitle="vs last week"
+          subtitle="this session"
         />
         <StatCard
           label="Daily Drawdown"
-          value={dailyDrawdown}
-          change="3% limit"
-          changeType="down"
+          value={dailyDrawdown.toFixed(2)}
+          change={accountData ? `${((dailyDrawdown / account.equity) * 100).toFixed(1)}% limit` : "no data"}
+          changeType={dailyDrawdown > 0 ? "down" : "up"}
           accentColor="#FF4560"
-          unit="%"
-          subtitle="safe"
+          unit="$"
+          subtitle={dailyDrawdown > 0 ? "active" : "safe"}
         />
       </div>
 
@@ -185,7 +209,7 @@ export default function DashboardPage() {
 
       {/* Positions + Signals */}
       <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
-        <PositionsTable compact />
+        <PositionsTable positions={positions} compact />
         <SignalList compact />
       </div>
 

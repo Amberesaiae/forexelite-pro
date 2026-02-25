@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Allow dev server access from network
+  experimental: {
+    allowedDevOrigins: ['192.168.1.108', 'localhost'],
+  },
 };
 
 export default nextConfig;

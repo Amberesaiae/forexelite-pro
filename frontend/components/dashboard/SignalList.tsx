@@ -1,15 +1,64 @@
 "use client";
 
-import { useSignalsStore, Signal } from "@/stores";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
+import { apiGet } from "@/lib/api";
+
+interface Signal {
+  id: string;
+  pair: string;
+  direction: 'BUY' | 'SELL';
+  entryMin: number;
+  entryMax: number;
+  sl: number;
+  tp: number;
+  confidence: number;
+  status: 'executed' | 'pending' | 'failed';
+  strategy: string;
+  timeAgo: string;
+}
+
+interface BackendSignal {
+  id: string;
+  symbol: string;
+  action: string;
+  status: string;
+  strategy_name: string;
+  fill_price?: number;
+  created_at?: string;
+}
 
 interface SignalListProps {
   compact?: boolean;
 }
 
 export function SignalList({ compact = false }: SignalListProps) {
-  const { signals } = useSignalsStore();
+  const { data: signalsData } = useQuery<BackendSignal[]>({
+    queryKey: ["signals"],
+    queryFn: async () => {
+      const res = await apiGet<BackendSignal[]>("/api/v1/signals");
+      if (res.error) return [];
+      return res.data || [];
+    },
+    refetchInterval: 30000,
+  });
+
+  // Transform backend signals to frontend format
+  const signals: Signal[] = (signalsData || []).map((s) => ({
+    id: s.id,
+    pair: s.symbol,
+    direction: s.action?.toUpperCase() === 'SELL' ? 'SELL' : 'BUY',
+    entryMin: s.fill_price || 0,
+    entryMax: s.fill_price || 0,
+    sl: 0,
+    tp: 0,
+    confidence: 70,
+    status: s.status === 'executed' ? 'executed' : s.status === 'pending' ? 'pending' : 'failed',
+    strategy: s.strategy_name || 'Unknown',
+    timeAgo: s.created_at ? new Date(s.created_at).toLocaleTimeString() : 'recently',
+  }));
+
   const displaySignals = compact ? signals.slice(0, 4) : signals;
 
   const getConfidenceStyle = (confidence: number) => {
@@ -42,7 +91,7 @@ export function SignalList({ compact = false }: SignalListProps) {
         </div>
       </CardHeader>
       <CardContent className={compact ? "space-y-2" : "space-y-2 max-h-[400px] overflow-y-auto"}>
-        {displaySignals.map((signal, index) => {
+        {displaySignals.map((signal) => {
           const confidence = getConfidenceStyle(signal.confidence);
           const status = getStatusStyle(signal.status);
           const isBuy = signal.direction === "BUY";

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import Link from "next/link";
@@ -78,12 +77,9 @@ export function Navigation() {
                 {item.label}
               </button>
             ))}
-            <Button 
-              onClick={() => scrollTo("signals")}
-              className="bg-[#C9A84C] text-[#04080F] hover:bg-[#E8C97A] w-full mt-4"
-            >
+            <Link href="/onboarding" className="bg-[#C9A84C] text-[#04080F] hover:bg-[#E8C97A] w-full mt-4 text-center py-3 rounded font-bold">
               GET STARTED FREE
-            </Button>
+            </Link>
           </div>
         </SheetContent>
       </Sheet>

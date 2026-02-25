@@ -16,7 +16,6 @@ import {
   ArrowUpDown,
   Layers,
   ChevronDown,
-  ChevronUp,
   Activity,
   Clock,
   Crosshair,
@@ -438,7 +437,7 @@ export default function StrategyLibrary() {
     <section id="library" className="max-w-[1400px] mx-auto px-6 py-16">
       <div className="text-center mb-10">
         <p className="text-[#C9A84C] font-mono uppercase tracking-wider text-sm mb-2">
-          // PROVEN METHODOLOGIES
+          {/* PROVEN METHODOLOGIES */}
         </p>
         <h2 className="text-5xl md:text-6xl font-bold text-white tracking-wide font-['Bebas_Neue']">
           STRATEGY LIBRARY

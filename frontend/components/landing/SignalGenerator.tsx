@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 
 interface Signal {
   pair: string;
@@ -106,7 +105,7 @@ export function SignalGenerator() {
       <div className="max-w-[1400px] mx-auto px-6">
         <div className="mb-10">
           <div className="text-[10px] tracking-[3px] uppercase text-[#C9A84C] font-mono mb-2.5">
-            // RULE-BASED ENGINE
+            {/* RULE-BASED ENGINE */}
           </div>
           <h2 className="text-[clamp(32px,6vw,64px)] font-['Bebas_Neue'] leading-none tracking-[1px] mb-3.5">
             SIGNAL GENERATOR
