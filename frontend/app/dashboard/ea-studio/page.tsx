@@ -1,11 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { EAEditor } from "@/components/dashboard/ea/EAEditor";
 import { TemplateGrid } from "@/components/dashboard/ea/TemplateGrid";
 import { EALibrary } from "@/components/dashboard/ea/EALibrary";
-import { useEAStore } from "@/stores";
+import { useEAStore, type EAProject, type EAVersion } from "@/stores";
+import { apiGet, apiPost } from "@/lib/api";
+
+const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
 const templates: Record<string, string> = {
   "ma-cross": "Create a trend following EA using 10/20 EMA crossover on M15. Risk 1%, 20 pip SL, 40 pip TP.",
@@ -16,40 +22,157 @@ const templates: Record<string, string> = {
   "grid": "Implement grid system with 20 pip spacing. Average down up to 5 levels, close all at profit.",
 };
 
+const GENERATION_STEPS = [
+  { key: 'analyzing', label: 'Analyzing', icon: '🔍' },
+  { key: 'designing', label: 'Designing', icon: '📐' },
+  { key: 'generating', label: 'Generating', icon: '⚡' },
+  { key: 'optimizing', label: 'Optimizing', icon: '🎯' },
+  { key: 'validating', label: 'Validating', icon: '✓' },
+  { key: 'formatting', label: 'Formatting', icon: '📝' },
+  { key: 'complete', label: 'Complete', icon: '✅' },
+];
+
 export default function EAStudioPage() {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"generate" | "editor" | "library">("generate");
-  const { setGeneratedCode } = useEAStore();
+  const [description, setDescription] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [showNewProject, setShowNewProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [generationStep, setGenerationStep] = useState(-1);
+  
+  const { 
+    setGeneratedCode, 
+    setProject, 
+    setVersion, 
+    activeProjectId, 
+    activeVersionId,
+    editorContent,
+    isDirty,
+    lockState 
+  } = useEAStore();
+
+  const { data: projectsData } = useQuery({
+    queryKey: ['ea-projects'],
+    queryFn: async () => {
+      const res = await apiGet<{ projects: EAProject[] }>('/api/v1/ea/projects');
+      return res.data ?? { projects: [] };
+    },
+  });
+
+  const projects = projectsData?.projects ?? [];
+
+  const createProjectMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await apiPost<{ project: EAProject }>('/api/v1/ea/projects', { name });
+      return res;
+    },
+    onSuccess: (res) => {
+      if (res.data?.project) {
+        setSelectedProjectId(res.data.project.id);
+        setProject(res.data.project.id);
+        toast.success("Project created");
+      }
+      setShowNewProject(false);
+      setNewProjectName("");
+      queryClient.invalidateQueries({ queryKey: ['ea-projects'] });
+    },
+    onError: (err: unknown) => {
+      const error = err as { error?: { detail?: string } };
+      toast.error(error?.error?.detail ?? "Failed to create project");
+    },
+  });
+
+  const generateMutation = useMutation({
+    mutationFn: async ({ projectId, description }: { projectId: string; description: string }) => {
+      const res = await apiPost<{ version: EAVersion }>('/api/v1/ea/generate', { project_id: projectId, description });
+      return res;
+    },
+    onSuccess: (res) => {
+      if (res.data?.version) {
+        setGeneratedCode(res.data.version.sourceCode);
+        setVersion(res.data.version.id);
+        setActiveTab("editor");
+        toast.success(`Generated successfully! (v${res.data.version.versionNumber})`);
+      }
+    },
+    onError: (err: unknown) => {
+      const error = err as { error?: { detail?: string } };
+      toast.error(error?.error?.detail ?? "Generation failed");
+    },
+  });
 
   const handleTemplateSelect = (templateId: string) => {
-    const description = templates[templateId];
-    if (description) {
-      const textarea = document.getElementById("eaStratDesc") as HTMLTextAreaElement;
-      if (textarea) {
-        textarea.value = description;
-      }
+    const templateDesc = templates[templateId];
+    if (templateDesc) {
+      setDescription(templateDesc);
     }
   };
 
   const handleGenerate = () => {
-    const textarea = document.getElementById("eaStratDesc") as HTMLTextAreaElement;
-    if (textarea?.value) {
-      setGeneratedCode(`// Generated EA based on: ${textarea.value.slice(0, 50)}...
-// This is a placeholder - integrate with GLM-5 API for real code generation
-
-#property copyright "ForexElite Pro 2026"
-#property version   "1.00"
-#property strict
-
-input double InpLots = 0.01;
-input int    InpMagic = 12345;
-input int    InpSlippage = 3;
-
-int OnInit() { return(INIT_SUCCEEDED); }
-void OnDeinit(const int reason) {}
-void OnTick() { 
-  // Strategy implementation
-}` + "\n");
+    if (!description.trim()) {
+      toast.error("Please enter a strategy description");
+      return;
     }
+
+    let projectId = selectedProjectId || activeProjectId;
+    
+    if (!projectId) {
+      if (projects.length > 0) {
+        projectId = projects[0].id;
+      } else {
+        toast.error("Please create a project first");
+        return;
+      }
+    }
+
+    setProject(projectId);
+    setGenerationStep(0);
+
+    const stepInterval = setInterval(() => {
+      setGenerationStep(prev => {
+        if (prev < GENERATION_STEPS.length - 1) {
+          return prev + 1;
+        }
+        clearInterval(stepInterval);
+        return prev;
+      });
+    }, 1200);
+
+    generateMutation.mutate(
+      { projectId, description },
+      {
+        onSettled: () => {
+          clearInterval(stepInterval);
+          setGenerationStep(-1);
+        },
+      }
+    );
+  };
+
+  const handleProjectChange = (projectId: string) => {
+    if (projectId === "new") {
+      setShowNewProject(true);
+    } else {
+      setSelectedProjectId(projectId);
+      setProject(projectId);
+    }
+  };
+
+  const handleLibrarySelect = (projectId: string) => {
+    setProject(projectId);
+    setActiveTab("editor");
+  };
+
+  const handleCreateProject = () => {
+    if (newProjectName.trim()) {
+      createProjectMutation.mutate(newProjectName.trim());
+    }
+  };
+
+  const getStepProgress = () => {
+    if (generationStep < 0) return 0;
+    return ((generationStep + 1) / GENERATION_STEPS.length) * 100;
   };
 
   return (
@@ -68,7 +191,13 @@ void OnTick() {
             <span className="text-[9px] font-mono px-2 py-1 rounded" style={{ backgroundColor: "rgba(201,168,76,0.12)", color: "#C9A84C" }}>
               GLM-5
             </span>
-            <button className="px-3 py-2 text-[11px] font-mono font-bold rounded" style={{ backgroundColor: "#C9A84C", color: "#040810" }}>
+            <button 
+              className="px-3 py-2 text-[11px] font-mono font-bold rounded" 
+              style={{ backgroundColor: "#C9A84C", color: "#040810" }}
+              onClick={() => {
+                setShowNewProject(true);
+              }}
+            >
               + New EA
             </button>
           </div>
@@ -78,8 +207,8 @@ void OnTick() {
       {/* Tabs */}
       <div className="flex gap-2 mb-3" style={{ borderBottom: "1px solid #131E32", paddingBottom: "10px" }}>
         {[
-          { id: "generate", label: "⚡ Generate" },
-          { id: "editor", label: "📝 Editor" },
+          { id: "generate", label: activeTab === "generate" && isDirty ? "⚡ Generate ●" : "⚡ Generate" },
+          { id: "editor", label: activeTab === "editor" && isDirty ? "📝 Editor ●" : "📝 Editor" },
           { id: "library", label: "📦 EA Library" },
         ].map((tab) => (
           <button
@@ -103,30 +232,115 @@ void OnTick() {
             <div style={{ backgroundColor: "#090F1E", border: "1px solid #131E32", borderRadius: "10px", padding: "16px" }}>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[10px] font-mono uppercase tracking-[1.5px]" style={{ color: "#3F5070" }}>
+                  Project
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedProjectId || activeProjectId || ""}
+                  onChange={(e) => handleProjectChange(e.target.value)}
+                  className="flex-1 text-[11px] font-mono px-3 py-2 rounded"
+                  style={{ backgroundColor: "#0C1525", border: "1px solid #131E32", color: "#EEF2FF" }}
+                >
+                  <option value="">Select project...</option>
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                  <option value="new">+ New Project</option>
+                </select>
+              </div>
+
+              {showNewProject && (
+                <div className="mt-3 p-3 rounded" style={{ backgroundColor: "#0C1525", border: "1px solid #131E32" }}>
+                  <input
+                    type="text"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    placeholder="Project name..."
+                    className="w-full text-[11px] font-mono px-3 py-2 rounded mb-2"
+                    style={{ backgroundColor: "#090F1E", border: "1px solid #131E32", color: "#EEF2FF" }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCreateProject()}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleCreateProject}
+                      className="px-3 py-1 text-[10px] font-mono rounded"
+                      style={{ backgroundColor: "#C9A84C", color: "#040810" }}
+                    >
+                      Create
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowNewProject(false);
+                        setNewProjectName("");
+                      }}
+                      className="px-3 py-1 text-[10px] font-mono rounded border"
+                      style={{ borderColor: "#131E32", color: "#8899BB" }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mt-4 mb-3">
+                <span className="text-[10px] font-mono uppercase tracking-[1.5px]" style={{ color: "#3F5070" }}>
                   Strategy Description
                 </span>
                 <span className="text-[9px] font-mono" style={{ color: "#C9A84C" }}>GLM-5</span>
               </div>
               <textarea
-                id="eaStratDesc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 className="w-full h-[110px] p-3 rounded text-[13px] resize-none"
                 style={{ backgroundColor: "#0C1525", border: "1px solid #131E32", color: "#EEF2FF" }}
                 placeholder="Describe your trading strategy in plain English..."
               />
               <div className="flex items-center justify-between mt-3">
-                <span className="text-[9.5px] font-mono" style={{ color: "#3F5070" }}>0 / 2000 chars</span>
+                <span className="text-[9.5px] font-mono" style={{ color: "#3F5070" }}>{description.length} / 2000 chars</span>
                 <button
                   onClick={handleGenerate}
+                  disabled={generateMutation.isPending}
                   className="px-4 py-2 text-[11px] font-mono font-bold rounded"
-                  style={{ backgroundColor: "#C9A84C", color: "#040810" }}
+                  style={{ backgroundColor: generateMutation.isPending ? "#7A6130" : "#C9A84C", color: "#040810" }}
                 >
-                  Generate MQL5
+                  {generateMutation.isPending ? 'Generating...' : 'Generate MQL5'}
                 </button>
               </div>
+
+              {generationStep >= 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    {GENERATION_STEPS.map((step, idx) => (
+                      <div
+                        key={step.key}
+                        className="flex flex-col items-center"
+                        style={{ opacity: idx <= generationStep ? 1 : 0.3 }}
+                      >
+                        <span className="text-[14px]">{step.icon}</span>
+                        <span className="text-[7px] font-mono mt-1" style={{ color: idx === generationStep ? "#C9A84C" : "#3F5070" }}>
+                          {step.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="h-1 rounded-full" style={{ backgroundColor: "#131E32" }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{ 
+                        backgroundColor: "#C9A84C",
+                        width: `${getStepProgress()}%` 
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             <TemplateGrid onSelect={handleTemplateSelect} />
           </div>
-          <EAEditor />
+          <EAEditor projectId={activeProjectId} versionId={activeVersionId} />
         </div>
       )}
 
@@ -145,16 +359,28 @@ void OnTick() {
               <button className="px-3 py-1.5 text-[10px] font-mono rounded" style={{ backgroundColor: "#C9A84C", color: "#040810" }}>⛶ Full Page</button>
             </div>
           </div>
-          <textarea
-            className="w-full h-[400px] p-4 font-mono text-[12px] rounded"
-            style={{ backgroundColor: "#020509", border: "1px solid #131E32", color: "#EEF2FF", resize: "none" }}
-            placeholder="// Open a file from the EA Library or paste code here..."
-          />
+          <div style={{ height: '400px' }}>
+            <MonacoEditor
+              height="100%"
+              language="cpp"
+              theme="vs-dark"
+              value={editorContent}
+              options={{
+                minimap: { enabled: false },
+                wordWrap: 'on',
+                scrollBeyondLastLine: false,
+                fontFamily: 'JetBrains Mono, monospace',
+                fontSize: 13,
+                readOnly: lockState === 'locked',
+                automaticLayout: true,
+              }}
+            />
+          </div>
         </div>
       )}
 
       {activeTab === "library" && (
-        <EALibrary />
+        <EALibrary onSelect={handleLibrarySelect} />
       )}
     </DashboardLayout>
   );

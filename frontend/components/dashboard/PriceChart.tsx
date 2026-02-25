@@ -8,44 +8,20 @@ interface PriceChartProps {
   timeframe: string;
   onSymbolChange?: (symbol: string) => void;
   onTimeframeChange?: (tf: string) => void;
+  candles?: CandlestickData[];
+  isLoading?: boolean;
+  isEmpty?: boolean;
 }
 
 const symbols = ["EURUSD", "GBPUSD", "XAUUSD", "USDJPY", "GBPJPY"];
 const timeframes = ["M5", "M15", "H1", "H4", "D1"];
 
-const mockCandlestickData: Record<string, Record<string, CandlestickData[]>> = {
-  EURUSD: {
-    H1: [
-      { time: "2026-02-20" as Time, open: 1.0800, high: 1.0825, low: 1.0790, close: 1.0815 },
-      { time: "2026-02-21" as Time, open: 1.0815, high: 1.0840, low: 1.0805, close: 1.0830 },
-      { time: "2026-02-22" as Time, open: 1.0830, high: 1.0855, low: 1.0820, close: 1.0845 },
-      { time: "2026-02-23" as Time, open: 1.0845, high: 1.0860, low: 1.0835, close: 1.0845 },
-    ],
-  },
-  GBPUSD: {
-    H1: [
-      { time: "2026-02-20" as Time, open: 1.2650, high: 1.2680, low: 1.2640, close: 1.2670 },
-      { time: "2026-02-21" as Time, open: 1.2670, high: 1.2700, low: 1.2660, close: 1.2690 },
-      { time: "2026-02-22" as Time, open: 1.2690, high: 1.2720, low: 1.2680, close: 1.2705 },
-      { time: "2026-02-23" as Time, open: 1.2705, high: 1.2715, low: 1.2685, close: 1.2691 },
-    ],
-  },
-  XAUUSD: {
-    H1: [
-      { time: "2026-02-20" as Time, open: 2010, high: 2025, low: 2005, close: 2020 },
-      { time: "2026-02-21" as Time, open: 2020, high: 2035, low: 2015, close: 2030 },
-      { time: "2026-02-22" as Time, open: 2030, high: 2045, low: 2028, close: 2040 },
-      { time: "2026-02-23" as Time, open: 2040, high: 2045, low: 2030, close: 2034.5 },
-    ],
-  },
-};
-
-export function PriceChart({ symbol, timeframe, onSymbolChange, onTimeframeChange }: PriceChartProps) {
+export function PriceChart({ symbol, timeframe, onSymbolChange, onTimeframeChange, candles, isLoading, isEmpty }: PriceChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const [currentPrice, setCurrentPrice] = useState<number>(1.08428);
-  const [priceChange, setPriceChange] = useState<number>(0.42);
+  const [currentPrice, setCurrentPrice] = useState<number>(0);
+  const [priceChange, setPriceChange] = useState<number>(0);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -83,17 +59,6 @@ export function PriceChart({ symbol, timeframe, onSymbolChange, onTimeframeChang
       wickDownColor: "#FF4560",
     });
 
-    const data = mockCandlestickData[symbol]?.[timeframe] || mockCandlestickData[symbol]?.H1 || [];
-    candlestickSeries.setData(data);
-
-    if (data.length > 0) {
-      const last = data[data.length - 1];
-      setCurrentPrice(last.close);
-      const first = data[0];
-      setPriceChange(((last.close - first.open) / first.open) * 100);
-    }
-
-    chart.timeScale().fitContent();
     chartRef.current = chart;
     seriesRef.current = candlestickSeries;
 
@@ -113,7 +78,83 @@ export function PriceChart({ symbol, timeframe, onSymbolChange, onTimeframeChang
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [symbol, timeframe]);
+  }, []);
+
+  useEffect(() => {
+    if (!seriesRef.current) return;
+
+    if (candles && candles.length > 0) {
+      seriesRef.current.setData(candles);
+      const last = candles[candles.length - 1];
+      const first = candles[0];
+      setCurrentPrice(last.close);
+      setPriceChange(((last.close - first.open) / first.open) * 100);
+      chartRef.current?.timeScale().fitContent();
+    } else if (!isLoading) {
+      seriesRef.current.setData([]);
+      setCurrentPrice(0);
+      setPriceChange(0);
+    }
+  }, [candles, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div style={{ backgroundColor: "#090F1E", border: "1px solid #131E32", borderRadius: "10px", padding: "16px" }}>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="h-6 w-20 bg-[#131E32] animate-pulse rounded" />
+          <div className="h-6 w-24 bg-[#131E32] animate-pulse rounded" />
+          <div className="ml-auto h-6 w-32 bg-[#131E32] animate-pulse rounded" />
+        </div>
+        <div className="w-full flex items-center justify-center" style={{ height: "210px" }}>
+          <div className="text-[12px]" style={{ color: "#3F5070" }}>Loading chart...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEmpty) {
+    return (
+      <div style={{ backgroundColor: "#090F1E", border: "1px solid #131E32", borderRadius: "10px", padding: "16px" }}>
+        <div className="flex items-center gap-3 mb-3">
+          <select
+            value={symbol}
+            onChange={(e) => onSymbolChange?.(e.target.value)}
+            className="font-mono text-[12px] font-semibold px-2 py-1 rounded"
+            style={{ backgroundColor: "#0C1525", border: "1px solid #131E32", color: "#EEF2FF" }}
+          >
+            {symbols.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <div className="font-mono text-[22px] font-medium" style={{ color: "#EEF2FF" }}>
+            —
+          </div>
+          <div className="ml-auto flex gap-1">
+            {timeframes.map((tf) => (
+              <button
+                key={tf}
+                onClick={() => onTimeframeChange?.(tf)}
+                className="font-mono text-[10px] px-2 py-1 rounded transition-colors"
+                style={{
+                  backgroundColor: timeframe === tf ? "rgba(201, 168, 76, 0.12)" : "transparent",
+                  border: `1px solid ${timeframe === tf ? "rgba(201,168,76,0.2)" : "transparent"}`,
+                  color: timeframe === tf ? "#C9A84C" : "#3F5070",
+                }}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="w-full flex flex-col items-center justify-center gap-2" style={{ height: "210px" }}>
+          <div className="text-[14px]" style={{ color: "#C9A84C" }}>⚠️ MT5 Agent offline</div>
+          <div className="text-[11px]" style={{ color: "#3F5070" }}>Prices unavailable. No candle data.</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ backgroundColor: "#090F1E", border: "1px solid #131E32", borderRadius: "10px", padding: "16px" }}>
@@ -132,19 +173,21 @@ export function PriceChart({ symbol, timeframe, onSymbolChange, onTimeframeChang
         </select>
 
         <div className="font-mono text-[22px] font-medium" style={{ color: "#EEF2FF" }}>
-          {currentPrice.toFixed(symbol.includes("JPY") ? 3 : 5)}
+          {currentPrice > 0 ? currentPrice.toFixed(symbol.includes("JPY") ? 3 : 5) : "—"}
         </div>
 
-        <span
-          className="font-mono text-[11px] px-2 py-1 rounded"
-          style={{
-            backgroundColor: priceChange >= 0 ? "rgba(0, 229, 160, 0.1)" : "rgba(255, 69, 96, 0.1)",
-            color: priceChange >= 0 ? "#00E5A0" : "#FF4560",
-          }}
-        >
-          {priceChange >= 0 ? "+" : ""}
-          {priceChange.toFixed(3)}%
-        </span>
+        {currentPrice > 0 && (
+          <span
+            className="font-mono text-[11px] px-2 py-1 rounded"
+            style={{
+              backgroundColor: priceChange >= 0 ? "rgba(0, 229, 160, 0.1)" : "rgba(255, 69, 96, 0.1)",
+              color: priceChange >= 0 ? "#00E5A0" : "#FF4560",
+            }}
+          >
+            {priceChange >= 0 ? "+" : ""}
+            {priceChange.toFixed(3)}%
+          </span>
+        )}
 
         <div className="ml-auto flex gap-1">
           {timeframes.map((tf) => (

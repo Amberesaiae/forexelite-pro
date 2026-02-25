@@ -1,21 +1,124 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { EquityRing } from "@/components/dashboard/EquityRing";
 import { PriceChart } from "@/components/dashboard/PriceChart";
 import { PositionsTable } from "@/components/dashboard/trading/PositionsTable";
 import { SignalList } from "@/components/dashboard/SignalList";
-import { useAccountStore, usePositionsStore } from "@/stores";
+import { apiGet } from "@/lib/api";
+import { usePriceStore } from "@/stores";
+
+interface Account {
+  balance: number;
+  equity: number;
+  margin: number;
+  free_margin: number;
+  margin_level: number;
+  leverage: number;
+  broker: string;
+  account_number: string;
+  account_type: "Demo" | "Live";
+  server: string;
+}
+
+interface Position {
+  ticket: string;
+  pair: string;
+  side: "BUY" | "SELL";
+  volume: number;
+  open_price: number;
+  current_price: number;
+  sl: number;
+  tp: number;
+  pnl: number;
+  swap: number;
+  open_time: string;
+}
+
+interface Deployment {
+  id: string;
+  name: string;
+  status: "running" | "paused" | "draft";
+  pair: string;
+}
+
+interface AgentStatus {
+  id: string;
+  status: string;
+  connected: boolean;
+}
 
 export default function DashboardPage() {
-  const account = useAccountStore();
-  const { positions } = usePositionsStore();
+  const prices = usePriceStore((s) => s.prices);
 
-  const totalPnL = positions.reduce((sum, p) => sum + p.pnl, 0);
+  const { data: accountData } = useQuery<Account>({
+    queryKey: ["account"],
+    queryFn: async () => {
+      const res = await apiGet<Account>("/api/v1/trading/account");
+      if (res.error) throw new Error(res.error.detail);
+      return res.data!;
+    },
+    refetchInterval: 30000,
+  });
+
+  const { data: positions = [] } = useQuery<Position[]>({
+    queryKey: ["positions"],
+    queryFn: async () => {
+      const res = await apiGet<Position[]>("/api/v1/trading/positions");
+      if (res.error) throw new Error(res.error.detail);
+      return res.data || [];
+    },
+    refetchInterval: 10000,
+  });
+
+  const { data: deployments = [] } = useQuery<Deployment[]>({
+    queryKey: ["deployments"],
+    queryFn: async () => {
+      const res = await apiGet<Deployment[]>("/api/v1/deployments");
+      if (res.error) throw new Error(res.error.detail);
+      return res.data || [];
+    },
+    refetchInterval: 30000,
+  });
+
+  const { data: agentStatus } = useQuery<AgentStatus>({
+    queryKey: ["agent-status"],
+    queryFn: async () => {
+      const res = await apiGet<AgentStatus>("/api/v1/agents/default/status");
+      if (res.error) throw new Error(res.error.detail);
+      return res.data!;
+    },
+    refetchInterval: 30000,
+  });
+
+  const runningEAs = deployments.filter((d) => d.status === "running").slice(0, 3);
+
+  const livePositions = positions.map((p) => ({
+    ...p,
+    currentPrice: prices[p.pair]?.bid || p.current_price,
+  }));
+
+  const totalPnL = livePositions.reduce((sum, p) => {
+    const pipMultiplier = p.pair.includes("JPY") ? 100 : 10000;
+    const priceDiff = p.side === "BUY"
+      ? (prices[p.pair]?.bid || p.current_price) - p.open_price
+      : p.open_price - (prices[p.pair]?.bid || p.current_price);
+    return sum + Math.round(priceDiff * pipMultiplier * p.volume * 10) / 10;
+  }, 0);
+
   const todayPnL = totalPnL;
   const winRate = 72;
   const dailyDrawdown = 1.2;
+
+  const account = accountData || {
+    balance: 10000,
+    equity: 10043.20,
+    margin: 108.43,
+    free_margin: 9891.57,
+    leverage: 500,
+  };
 
   return (
     <DashboardLayout>
@@ -75,7 +178,7 @@ export default function DashboardPage() {
           balance={account.balance}
           equity={account.equity}
           marginUsed={account.margin}
-          freeMargin={account.freeMargin}
+          freeMargin={account.free_margin}
           leverage={account.leverage}
         />
       </div>
@@ -97,21 +200,22 @@ export default function DashboardPage() {
               Manage
             </span>
           </div>
-          {[
-            { name: "Scalping Bot v2", status: "running", pair: "EURUSD" },
-            { name: "Trend Follower", status: "paused", pair: "GBPUSD" },
-          ].map((ea, i) => (
-            <div key={i} className="flex items-center gap-3 p-2.5 rounded mb-2" style={{ backgroundColor: "#0C1525" }}>
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ea.status === "running" ? "#00E5A0" : "#C9A84C", boxShadow: ea.status === "running" ? "0 0 6px #00E5A0" : "none" }} />
-              <div className="flex-1">
-                <div className="text-[12px] font-semibold" style={{ color: "#EEF2FF" }}>{ea.name}</div>
-                <div className="text-[9.5px] font-mono" style={{ color: "#3F5070" }}>{ea.pair}</div>
+          {runningEAs.length > 0 ? (
+            runningEAs.map((ea) => (
+              <div key={ea.id} className="flex items-center gap-3 p-2.5 rounded mb-2" style={{ backgroundColor: "#0C1525" }}>
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ea.status === "running" ? "#00E5A0" : "#C9A84C", boxShadow: ea.status === "running" ? "0 0 6px #00E5A0" : "none" }} />
+                <div className="flex-1">
+                  <div className="text-[12px] font-semibold" style={{ color: "#EEF2FF" }}>{ea.name}</div>
+                  <div className="text-[9.5px] font-mono" style={{ color: "#3F5070" }}>{ea.pair}</div>
+                </div>
+                <button className="text-[9px] font-mono px-2 py-1 rounded border" style={{ borderColor: "#131E32", color: "#8899BB" }}>
+                  Log
+                </button>
               </div>
-              <button className="text-[9px] font-mono px-2 py-1 rounded border" style={{ borderColor: "#131E32", color: "#8899BB" }}>
-                Log
-              </button>
-            </div>
-          ))}
+            ))
+          ) : (
+            <div className="text-[11px]" style={{ color: "#3F5070" }}>No running EAs</div>
+          )}
         </div>
 
         <div style={{ backgroundColor: "#090F1E", border: "1px solid #131E32", borderRadius: "10px", padding: "16px" }}>

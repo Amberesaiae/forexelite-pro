@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,18 +14,16 @@ import {
   Settings,
   Bell,
   Menu,
-  ChevronDown,
-  LogOut,
   Search,
   Wallet,
-  X,
-  Play,
-  Pause,
-  Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { usePriceStore } from "@/stores";
+
+const DEFAULT_PAIRS = ["EURUSD", "GBPUSD", "XAUUSD", "USDJPY", "AUDUSD", "USDCAD"];
+const WS_RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 30000];
 
 const sidebarItems = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -38,15 +36,6 @@ const sidebarItems = [
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
-const tickerItems = [
-  { pair: "EURUSD", price: "1.08428", change: "+0.42%", up: true },
-  { pair: "GBPUSD", price: "1.26910", change: "+0.31%", up: true },
-  { pair: "XAUUSD", price: "2034.50", change: "+0.55%", up: true },
-  { pair: "USDJPY", price: "149.82", change: "-0.12%", up: false },
-  { pair: "AUDUSD", price: "0.6542", change: "+0.08%", up: true },
-  { pair: "USDCAD", price: "1.3598", change: "-0.05%", up: false },
-];
-
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
@@ -55,6 +44,77 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [isAgentOffline, setIsAgentOffline] = useState(false);
+  
+  const updatePrice = usePriceStore((s) => s.update);
+  const wsRefs = useRef<Map<string, WebSocket>>(new Map());
+  const lastTickTime = useRef<Record<string, number>>({});
+  const reconnectAttempt = useRef<Record<string, number>>({});
+  const offlineCheckInterval = useRef<NodeJS.Timeout | null>(null);
+  const connectRef = useRef<((pair: string) => void) | null>(null);
+
+  const connectWebSocket = useCallback((pair: string) => {
+    if (wsRefs.current.has(pair)) return;
+
+    const wsUrl = `ws://localhost:8000/api/v1/ws/prices/${pair}`;
+    let ws: WebSocket;
+
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch {
+      return;
+    }
+
+    ws.onopen = () => {
+      reconnectAttempt.current[pair] = 0;
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const pairKey = data.pair || pair;
+        updatePrice(pairKey, { bid: data.bid, ask: data.ask });
+        lastTickTime.current[pairKey] = Date.now();
+        setIsAgentOffline(false);
+      } catch {}
+    };
+
+    ws.onerror = () => {};
+
+    ws.onclose = () => {
+      wsRefs.current.delete(pair);
+      const attempt = reconnectAttempt.current[pair] || 0;
+      const delay = WS_RECONNECT_DELAYS[Math.min(attempt, WS_RECONNECT_DELAYS.length - 1)];
+      reconnectAttempt.current[pair] = attempt + 1;
+      if (connectRef.current) {
+        setTimeout(() => connectRef.current!(pair), delay);
+      }
+    };
+
+    wsRefs.current.set(pair, ws);
+  }, [updatePrice]);
+
+  useEffect(() => {
+    connectRef.current = connectWebSocket;
+  }, [connectWebSocket]);
+
+  useEffect(() => {
+    DEFAULT_PAIRS.forEach((pair) => connectWebSocket(pair));
+
+    offlineCheckInterval.current = setInterval(() => {
+      const now = Date.now();
+      const allOffline = DEFAULT_PAIRS.every(
+        (pair) => !lastTickTime.current[pair] || now - lastTickTime.current[pair] > 10000
+      );
+      setIsAgentOffline(allOffline);
+    }, 1000);
+
+    return () => {
+      offlineCheckInterval.current && clearInterval(offlineCheckInterval.current);
+      wsRefs.current.forEach((ws) => ws.close());
+      wsRefs.current.clear();
+    };
+  }, [connectWebSocket]);
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
@@ -111,6 +171,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-[#040810]">
+      {isAgentOffline && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-[#C9A84C] text-[#040810] px-4 py-2 flex items-center justify-center gap-2 text-[12px] font-mono font-bold">
+          <span>⚠️ MT5 Agent offline — prices unavailable.</span>
+          <a href="/dashboard/settings" className="underline hover:no-underline">Setup Agent →</a>
+        </div>
+      )}
+      <div className={isAgentOffline ? "pt-10" : ""}>
       <div className="hidden md:fixed md:inset-y-0 md:z-50 md:flex md:w-[220px] md:flex-col">
         <div className="flex h-full flex-col bg-[#060B18]">
           <SidebarContent />
@@ -210,6 +277,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         <main className="p-4 md:p-5">{children}</main>
+        </div>
       </div>
     </div>
   );

@@ -53,21 +53,31 @@ class OnboardingGateMiddleware(BaseHTTPMiddleware):
 
             supabase = get_supabase_client()
 
-            # Check disclaimer acceptance
-            settings_response = supabase.table("user_settings").select(
-                "disclaimer_accepted"
-            ).eq("user_id", user_id).execute()
+            # Check disclaimer acceptance and risk settings
+            settings_response = (
+                supabase.table("user_settings")
+                .select("disclaimer_accepted", "risk_percent")
+                .eq("user_id", user_id)
+                .execute()
+            )
 
             disclaimer_accepted = False
+            has_preferences = False
             if settings_response.data:
                 disclaimer_accepted = settings_response.data[0].get(
                     "disclaimer_accepted", False
                 )
+                has_preferences = (
+                    settings_response.data[0].get("risk_percent") is not None
+                )
 
             # Count broker connections
-            brokers_response = supabase.table("broker_connections").select(
-                "id"
-            ).eq("user_id", user_id).execute()
+            brokers_response = (
+                supabase.table("broker_connections")
+                .select("id")
+                .eq("user_id", user_id)
+                .execute()
+            )
 
             broker_count = len(brokers_response.data) if brokers_response.data else 0
 
@@ -75,13 +85,15 @@ class OnboardingGateMiddleware(BaseHTTPMiddleware):
             missing = []
             if not disclaimer_accepted:
                 missing.append("disclaimer")
+            if not has_preferences:
+                missing.append("preferences")
             if broker_count == 0:
-                missing.append("broker_connection")
+                missing.append("broker")
 
             if missing:
                 return JSONResponse(
                     status_code=428,
-                    content={"detail": "onboarding_required", "missing": missing}
+                    content={"detail": "onboarding_required", "missing": missing},
                 )
 
         except Exception:

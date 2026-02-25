@@ -3,10 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
+import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+import { apiPut, apiPost } from "@/lib/api";
+import { Loader2, Copy, Check, CheckCircle2 } from "lucide-react";
 
 const steps = [
   { id: 1, name: "Connect MT5", status: "active" },
@@ -14,32 +20,143 @@ const steps = [
   { id: 3, name: "Disclaimer", status: "pending" },
 ];
 
+const mt5Schema = z.object({
+  brokerName: z.string().min(1, "Broker name is required"),
+  accountNumber: z.string().min(1, "Account number is required"),
+  accountType: z.enum(["Demo", "Live"]),
+  label: z.string().optional(),
+});
+
+const riskConfigSchema = z.object({
+  riskPerTrade: z.number().min(0.1, "Min 0.1%").max(100, "Max 100%"),
+  maxSpread: z.number().min(1, "Min 1 pip").max(1000, "Max 1000 pips"),
+  maxDrawdown: z.number().min(1, "Min 1%").max(100, "Max 100%"),
+  dailyLossLimit: z.number().min(0.1, "Min 0.1%").max(100, "Max 100%"),
+});
+
+type MT5FormData = z.infer<typeof mt5Schema>;
+type RiskConfigFormData = z.infer<typeof riskConfigSchema>;
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const [accountType, setAccountType] = useState<"demo" | "live">("live");
+  const [accountType, setAccountType] = useState<"Demo" | "Live">("Live");
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  const [pairingKey, setPairingKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [connectionTested, setConnectionTested] = useState(false);
 
   const [riskConfig, setRiskConfig] = useState({
-    riskPercent: "1.0",
-    maxSpread: "30",
-    maxDrawdown: "20",
-    dailyLossLimit: "5",
+    riskPerTrade: 1.0,
+    maxSpread: 30,
+    maxDrawdown: 20,
+    dailyLossLimit: 5,
   });
 
-  const progress = (currentStep / 3) * 100;
+  const mt5Form = useForm<MT5FormData>({
+    resolver: zodResolver(mt5Schema),
+    defaultValues: {
+      brokerName: "",
+      accountNumber: "",
+      accountType: "Live",
+      label: "",
+    },
+  });
 
-  const handleContinue = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      router.push("/dashboard");
+  const riskForm = useForm<RiskConfigFormData>({
+    resolver: zodResolver(riskConfigSchema),
+    defaultValues: {
+      riskPerTrade: 1.0,
+      maxSpread: 30,
+      maxDrawdown: 20,
+      dailyLossLimit: 5,
+    },
+  });
+
+  const saveBrokerMutation = useMutation({
+    mutationFn: async (data: MT5FormData) => {
+      const response = await apiPut("/api/v1/onboarding/brokers", data);
+      return response;
+    },
+    onSuccess: () => {
+      setCurrentStep(2);
+    },
+    onError: (error) => {
+      console.error("Failed to save broker:", error);
+    },
+  });
+
+  const savePreferencesMutation = useMutation({
+    mutationFn: async (data: RiskConfigFormData & { disclaimer_accepted?: boolean }) => {
+      const response = await apiPut("/api/v1/onboarding/preferences", data);
+      return response;
+    },
+    onSuccess: () => {
+      if (disclaimerAccepted) {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#C9A84C", "#E8C97A", "#00E5A0", "#FFFFFF"],
+        });
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 1500);
+      } else {
+        setCurrentStep(3);
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to save preferences:", error);
+    },
+  });
+
+  const generatePairingKeyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiPost<{ pairing_key: string }>("/api/v1/agents/pair", {});
+      return response;
+    },
+    onSuccess: (data) => {
+      if (data?.data?.pairing_key) {
+        setPairingKey(data.data.pairing_key);
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to generate pairing key:", error);
+    },
+  });
+
+  const handleMT5Submit = (data: MT5FormData) => {
+    saveBrokerMutation.mutate({
+      ...data,
+      accountType,
+    });
+  };
+
+  const handleRiskSubmit = (data: RiskConfigFormData) => {
+    setRiskConfig(data);
+    savePreferencesMutation.mutate(data);
+  };
+
+  const handleCompleteSetup = () => {
+    if (disclaimerAccepted) {
+      savePreferencesMutation.mutate({
+        ...riskConfig,
+        disclaimer_accepted: true,
+      });
     }
   };
 
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+  const handleCopyPairingKey = () => {
+    if (pairingKey) {
+      navigator.clipboard.writeText(pairingKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const handleGeneratePairingKey = () => {
+    generatePairingKeyMutation.mutate();
   };
 
   return (
@@ -58,7 +175,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* Progress Steps */}
-      <div className="max-w-[600px] mx-auto mt-12 px-6">
+      <div className="max-w-[800px] mx-auto mt-12 px-6">
         <div className="flex items-center gap-0 mb-10">
           {steps.map((step, index) => (
             <div key={step.id} className="flex items-center flex-1">
@@ -98,57 +215,178 @@ export default function OnboardingPage() {
                 Link your MetaTrader 5 broker account to get started
               </p>
 
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-[12px] text-[#8899BB]">Broker Name</Label>
-                  <Input
-                    placeholder="e.g. Exness Global"
-                    className="bg-[#0C1525] border-[#141E30] text-[#EEF2FF] h-10 mt-1.5"
-                  />
-                </div>
+              <form onSubmit={mt5Form.handleSubmit(handleMT5Submit)}>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-[12px] text-[#8899BB]">Broker Name</Label>
+                    <Input
+                      placeholder="e.g. Exness Global"
+                      {...mt5Form.register("brokerName")}
+                      className="bg-[#0C1525] border-[#141E30] text-[#EEF2FF] h-10 mt-1.5"
+                    />
+                    {mt5Form.formState.errors.brokerName && (
+                      <p className="text-[#FF6B6B] text-[11px] mt-1">
+                        {mt5Form.formState.errors.brokerName.message}
+                      </p>
+                    )}
+                  </div>
 
-                <div>
-                  <Label className="text-[12px] text-[#8899BB]">Account Number</Label>
-                  <Input
-                    placeholder="12345678"
-                    className="bg-[#0C1525] border-[#141E30] text-[#EEF2FF] h-10 mt-1.5"
-                  />
-                </div>
+                  <div>
+                    <Label className="text-[12px] text-[#8899BB]">Account Number</Label>
+                    <Input
+                      placeholder="12345678"
+                      {...mt5Form.register("accountNumber")}
+                      className="bg-[#0C1525] border-[#141E30] text-[#EEF2FF] h-10 mt-1.5"
+                    />
+                    {mt5Form.formState.errors.accountNumber && (
+                      <p className="text-[#FF6B6B] text-[11px] mt-1">
+                        {mt5Form.formState.errors.accountNumber.message}
+                      </p>
+                    )}
+                  </div>
 
-                <div>
-                  <Label className="text-[12px] text-[#8899BB]">Account Type</Label>
-                  <div className="flex gap-3 mt-1.5">
-                    <button
-                      onClick={() => setAccountType("demo")}
-                      className={`flex-1 py-2 px-5 rounded-[6px] text-[13px] border transition-colors ${
-                        accountType === "demo"
-                          ? "border-[#C9A84C] text-[#C9A84C] bg-[#0C1525]"
-                          : "border-[#131E32] text-[#8899BB] bg-[#0C1525]"
-                      }`}
-                    >
-                      Demo
-                    </button>
-                    <button
-                      onClick={() => setAccountType("live")}
-                      className={`flex-1 py-2 px-5 rounded-[6px] text-[13px] border transition-colors ${
-                        accountType === "live"
-                          ? "border-[#C9A84C] text-[#C9A84C] bg-[#0C1525]"
-                          : "border-[#131E32] text-[#8899BB] bg-[#0C1525]"
-                      }`}
-                    >
-                      Live
-                    </button>
+                  <div>
+                    <Label className="text-[12px] text-[#8899BB]">Account Type</Label>
+                    <div className="flex gap-3 mt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setAccountType("Demo")}
+                        className={`flex-1 py-2 px-5 rounded-[6px] text-[13px] border transition-colors ${
+                          accountType === "Demo"
+                            ? "border-[#C9A84C] text-[#C9A84C] bg-[#0C1525]"
+                            : "border-[#131E32] text-[#8899BB] bg-[#0C1525]"
+                        }`}
+                      >
+                        Demo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAccountType("Live")}
+                        className={`flex-1 py-2 px-5 rounded-[6px] text-[13px] border transition-colors ${
+                          accountType === "Live"
+                            ? "border-[#C9A84C] text-[#C9A84C] bg-[#0C1525]"
+                            : "border-[#131E32] text-[#8899BB] bg-[#0C1525]"
+                        }`}
+                      >
+                        Live
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-[12px] text-[#8899BB]">Label (optional)</Label>
+                    <Input
+                      placeholder="My Main Account"
+                      {...mt5Form.register("label")}
+                      className="bg-[#0C1525] border-[#141E32] text-[#EEF2FF] h-10 mt-1.5"
+                    />
                   </div>
                 </div>
 
-                <div>
-                  <Label className="text-[12px] text-[#8899BB]">Label (optional)</Label>
-                  <Input
-                    placeholder="My Main Account"
-                    className="bg-[#0C1525] border-[#141E32] text-[#EEF2FF] h-10 mt-1.5"
-                  />
+                {/* Agent Pairing Panel */}
+                <div className="mt-8 pt-6 border-t border-[#141E30]">
+                  <h3 className="text-[16px] font-bold text-[#EEF2FF] mb-4">Agent Pairing</h3>
+                  
+                  {!pairingKey ? (
+                    <div className="text-center py-4">
+                      <p className="text-[13px] text-[#8899BB] mb-4">
+                        Generate a pairing key to connect your trading agent
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={handleGeneratePairingKey}
+                        disabled={generatePairingKeyMutation.isPending}
+                        className="bg-[#131E32] hover:bg-[#1A2740] text-[#EEF2FF] border border-[#C9A84C]"
+                      >
+                        {generatePairingKeyMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          "Generate Pairing Key"
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="bg-[#0C1525] border border-[#141E30] rounded-[6px] p-4">
+                        <Label className="text-[11px] text-[#8899BB] block mb-2">PAIRING KEY</Label>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 bg-[#080E1A] text-[#C9A84C] font-mono text-[14px] px-3 py-2 rounded">
+                            {pairingKey}
+                          </code>
+                          <Button
+                            type="button"
+                            onClick={handleCopyPairingKey}
+                            variant="outline"
+                            size="sm"
+                            className="border-[#141E30] text-[#8899BB]"
+                          >
+                            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="bg-[#1A2740] border border-[#C9A84C]/30 rounded-[6px] p-4">
+                        <p className="text-[12px] text-[#C9A84C] mb-2">
+                          <strong>Setup Instructions:</strong>
+                        </p>
+                        <ol className="text-[11px] text-[#8899BB] space-y-1 list-decimal list-inside">
+                          <li>Enter this pairing key in your EA settings</li>
+                          <li>Restart your MetaTrader 5 terminal</li>
+                          <li>The agent will automatically connect</li>
+                        </ol>
+                      </div>
+
+                      <Button
+                        type="button"
+                        onClick={() => setConnectionTested(true)}
+                        variant="outline"
+                        className={`w-full border ${
+                          connectionTested
+                            ? "border-[#00E5A0] text-[#00E5A0]"
+                            : "border-[#C9A84C] text-[#C9A84C]"
+                        }`}
+                      >
+                        {connectionTested ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                            Connection Tested
+                          </>
+                        ) : (
+                          "Test Connection"
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              </div>
+
+                <div className="flex justify-between mt-8">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.push("/login")}
+                    className="border-[#131E30] text-[#8899BB] hover:bg-[#131E30] hover:text-[#EEF2FF]"
+                  >
+                    ← Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={saveBrokerMutation.isPending}
+                    className="bg-[#C9A84C] hover:bg-[#E8C97A] text-[#080E1A] font-bold"
+                  >
+                    {saveBrokerMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Continue →"
+                    )}
+                  </Button>
+                </div>
+              </form>
             </>
           )}
 
@@ -161,48 +399,91 @@ export default function OnboardingPage() {
                 Set your risk management rules for automated trading
               </p>
 
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-[12px] text-[#8899BB]">Risk per Trade (%)</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={riskConfig.riskPercent}
-                    onChange={(e) => setRiskConfig({ ...riskConfig, riskPercent: e.target.value })}
-                    className="bg-[#0C1525] border-[#141E30] text-[#EEF2FF] h-10 mt-1.5"
-                  />
+              <form onSubmit={riskForm.handleSubmit(handleRiskSubmit)}>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-[12px] text-[#8899BB]">Risk per Trade (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      {...riskForm.register("riskPerTrade", { valueAsNumber: true })}
+                      className="bg-[#0C1525] border-[#141E30] text-[#EEF2FF] h-10 mt-1.5"
+                    />
+                    {riskForm.formState.errors.riskPerTrade && (
+                      <p className="text-[#FF6B6B] text-[11px] mt-1">
+                        {riskForm.formState.errors.riskPerTrade.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label className="text-[12px] text-[#8899BB]">Max Spread (pips)</Label>
+                    <Input
+                      type="number"
+                      {...riskForm.register("maxSpread", { valueAsNumber: true })}
+                      className="bg-[#0C1525] border-[#141E32] text-[#EEF2FF] h-10 mt-1.5"
+                    />
+                    {riskForm.formState.errors.maxSpread && (
+                      <p className="text-[#FF6B6B] text-[11px] mt-1">
+                        {riskForm.formState.errors.maxSpread.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label className="text-[12px] text-[#8899BB]">Max Drawdown (%)</Label>
+                    <Input
+                      type="number"
+                      {...riskForm.register("maxDrawdown", { valueAsNumber: true })}
+                      className="bg-[#0C1525] border-[#141E32] text-[#EEF2FF] h-10 mt-1.5"
+                    />
+                    {riskForm.formState.errors.maxDrawdown && (
+                      <p className="text-[#FF6B6B] text-[11px] mt-1">
+                        {riskForm.formState.errors.maxDrawdown.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label className="text-[12px] text-[#8899BB]">Daily Loss Limit (%)</Label>
+                    <Input
+                      type="number"
+                      {...riskForm.register("dailyLossLimit", { valueAsNumber: true })}
+                      className="bg-[#0C1525] border-[#141E32] text-[#EEF2FF] h-10 mt-1.5"
+                    />
+                    {riskForm.formState.errors.dailyLossLimit && (
+                      <p className="text-[#FF6B6B] text-[11px] mt-1">
+                        {riskForm.formState.errors.dailyLossLimit.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <div>
-                  <Label className="text-[12px] text-[#8899BB]">Max Spread (pips)</Label>
-                  <Input
-                    type="number"
-                    value={riskConfig.maxSpread}
-                    onChange={(e) => setRiskConfig({ ...riskConfig, maxSpread: e.target.value })}
-                    className="bg-[#0C1525] border-[#141E32] text-[#EEF2FF] h-10 mt-1.5"
-                  />
+                <div className="flex justify-between mt-8">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCurrentStep(1)}
+                    className="border-[#131E30] text-[#8899BB] hover:bg-[#131E30] hover:text-[#EEF2FF]"
+                  >
+                    ← Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={savePreferencesMutation.isPending}
+                    className="bg-[#C9A84C] hover:bg-[#E8C97A] text-[#080E1A] font-bold"
+                  >
+                    {savePreferencesMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Continue →"
+                    )}
+                  </Button>
                 </div>
-
-                <div>
-                  <Label className="text-[12px] text-[#8899BB]">Max Drawdown (%)</Label>
-                  <Input
-                    type="number"
-                    value={riskConfig.maxDrawdown}
-                    onChange={(e) => setRiskConfig({ ...riskConfig, maxDrawdown: e.target.value })}
-                    className="bg-[#0C1525] border-[#141E32] text-[#EEF2FF] h-10 mt-1.5"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-[12px] text-[#8899BB]">Daily Loss Limit (%)</Label>
-                  <Input
-                    type="number"
-                    value={riskConfig.dailyLossLimit}
-                    onChange={(e) => setRiskConfig({ ...riskConfig, dailyLossLimit: e.target.value })}
-                    className="bg-[#0C1525] border-[#141E32] text-[#EEF2FF] h-10 mt-1.5"
-                  />
-                </div>
-              </div>
+              </form>
             </>
           )}
 
@@ -243,48 +524,41 @@ export default function OnboardingPage() {
                 <input
                   type="checkbox"
                   id="accept-terms"
+                  checked={disclaimerAccepted}
+                  onChange={(e) => setDisclaimerAccepted(e.target.checked)}
                   className="w-4 h-4 accent-[#C9A84C]"
                 />
                 <Label htmlFor="accept-terms" className="text-[12px] text-[#8899BB] cursor-pointer">
                   I have read and agree to the Risk Disclaimer and Terms of Service
                 </Label>
               </div>
-            </>
-          )}
 
-          {/* Actions */}
-          <div className="flex justify-between mt-8">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              className="border-[#131E30] text-[#8899BB] hover:bg-[#131E30] hover:text-[#EEF2FF]"
-            >
-              ← Back
-            </Button>
-            {currentStep < 3 ? (
-              <div className="flex gap-3">
+              <div className="flex justify-between mt-8">
                 <Button
+                  type="button"
                   variant="outline"
-                  className="border-[#C9A84C] text-[#C9A84C] hover:bg-[#C9A84C] hover:text-[#080E1A]"
+                  onClick={() => setCurrentStep(2)}
+                  className="border-[#131E30] text-[#8899BB] hover:bg-[#131E30] hover:text-[#EEF2FF]"
                 >
-                  Test Connection
+                  ← Back
                 </Button>
                 <Button
-                  onClick={handleContinue}
-                  className="bg-[#C9A84C] hover:bg-[#E8C97A] text-[#080E1A] font-bold"
+                  onClick={handleCompleteSetup}
+                  disabled={!disclaimerAccepted || savePreferencesMutation.isPending}
+                  className="bg-[#C9A84C] hover:bg-[#E8C97A] text-[#080E1A] font-bold disabled:opacity-50"
                 >
-                  Continue →
+                  {savePreferencesMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Completing...
+                    </>
+                  ) : (
+                    "Complete Setup →"
+                  )}
                 </Button>
               </div>
-            ) : (
-              <Button
-                onClick={handleContinue}
-                className="bg-[#C9A84C] hover:bg-[#E8C97A] text-[#080E1A] font-bold"
-              >
-                Complete Setup →
-              </Button>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>

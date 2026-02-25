@@ -125,6 +125,14 @@ export async function apiPatch<T>(path: string, body?: unknown, options?: Reques
   });
 }
 
+export async function apiPut<T>(path: string, body?: unknown, options?: RequestInit) {
+  return apiFetch<T>(path, {
+    ...options,
+    method: 'PUT',
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
 export async function apiDelete<T>(path: string, options?: RequestInit) {
   return apiFetch<T>(path, { ...options, method: 'DELETE' });
 }

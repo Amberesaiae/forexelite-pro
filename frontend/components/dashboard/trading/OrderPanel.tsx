@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { usePriceStore } from "@/stores";
 
 interface OrderPanelProps {
   onSubmit?: (order: OrderData) => void;
+  isLoading?: boolean;
 }
 
 export interface OrderData {
@@ -28,23 +30,16 @@ const marginRequirement: Record<string, number> = {
   GBPJPY: 0.02,
 };
 
-export function OrderPanel({ onSubmit }: OrderPanelProps) {
+export function OrderPanel({ onSubmit, isLoading = false }: OrderPanelProps) {
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
   const [symbol, setSymbol] = useState("EURUSD");
   const [volume, setVolume] = useState(0.01);
   const [slPips, setSlPips] = useState(20);
   const [tpPips, setTpPips] = useState(40);
 
-  const currentPrice = useMemo(() => {
-    const prices: Record<string, number> = {
-      EURUSD: 1.08428,
-      GBPUSD: 1.26910,
-      XAUUSD: 2034.5,
-      USDJPY: 149.82,
-      GBPJPY: 188.45,
-    };
-    return prices[symbol] || 1.0;
-  }, [symbol]);
+  const prices = usePriceStore((s) => s.prices);
+  const currentTick = prices[symbol];
+  const currentPrice = currentTick?.bid || 0;
 
   const pipValue = useMemo(() => {
     const pipSizes: Record<string, number> = {
@@ -225,13 +220,15 @@ export function OrderPanel({ onSubmit }: OrderPanelProps) {
 
         <Button
           onClick={handleSubmit}
+          disabled={isLoading}
           className="w-full py-2.5 text-[12px] font-mono font-bold tracking-[1.5px]"
           style={{
             backgroundColor: side === "BUY" ? "#00E5A0" : "#FF4560",
             color: side === "BUY" ? "#040810" : "white",
+            opacity: isLoading ? 0.6 : 1,
           }}
         >
-          EXECUTE {side}
+          {isLoading ? "PROCESSING..." : `EXECUTE ${side}`}
         </Button>
 
         <p className="text-[9px] font-mono text-center" style={{ color: "#3F5070" }}>

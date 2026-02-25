@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
     # GLM-5 API
     GLM5_API_KEY: str = ""
-    GLM5_API_BASE_URL: str = "https://api.glm5.example.com"
+    GLM5_API_BASE_URL: str = "https://open.bigmodel.cn/api/paas/v4"
 
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000"]

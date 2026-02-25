@@ -1,19 +1,30 @@
 "use client";
 
-import { usePositionsStore, Position } from "@/stores";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
+interface Position {
+  ticket: string;
+  pair: string;
+  side: "BUY" | "SELL";
+  volume: number;
+  open_price: number;
+  current_price?: number;
+  currentPrice?: number;
+  sl: number;
+  tp: number;
+  pnl: number;
+  swap: number;
+  open_time: string;
+}
 
 interface PositionsTableProps {
   compact?: boolean;
+  positions?: Position[];
   onClosePosition?: (ticket: string) => void;
 }
 
-export function PositionsTable({ compact = false, onClosePosition }: PositionsTableProps) {
-  const { positions, removePosition } = usePositionsStore();
-
+export function PositionsTable({ compact = false, positions = [], onClosePosition }: PositionsTableProps) {
   const handleClose = (ticket: string) => {
-    removePosition(ticket);
     onClosePosition?.(ticket);
   };
 
@@ -25,6 +36,8 @@ export function PositionsTable({ compact = false, onClosePosition }: PositionsTa
   const columns = compact
     ? ["Pair", "Side", "Lots", "Open", "P&L"]
     : ["Ticket", "Instrument", "Side", "Volume", "Open Price", "Current", "SL", "TP", "P&L", "Action"];
+
+  const displayPositions = compact ? positions.slice(0, 5) : positions;
 
   return (
     <Card style={{ backgroundColor: "#090F1E", borderColor: "#131E32" }}>
@@ -60,7 +73,7 @@ export function PositionsTable({ compact = false, onClosePosition }: PositionsTa
               </tr>
             </thead>
             <tbody>
-              {(compact ? positions.slice(0, 5) : positions).map((pos) => (
+              {displayPositions.map((pos) => (
                 <tr
                   key={pos.ticket}
                   className="transition-colors hover:bg-[#111929]"
@@ -91,12 +104,12 @@ export function PositionsTable({ compact = false, onClosePosition }: PositionsTa
                         {pos.volume}
                       </td>
                       <td className="px-3 py-2.5 text-[12px] font-mono" style={{ color: "#EEF2FF" }}>
-                        {formatPrice(pos.openPrice, pos.pair)}
+                        {formatPrice(pos.open_price, pos.pair)}
                       </td>
                     </>
                   )}
                   <td className="px-3 py-2.5 text-[12px] font-mono" style={{ color: "#EEF2FF" }}>
-                    {formatPrice(pos.currentPrice, pos.pair)}
+                    {formatPrice(pos.currentPrice || pos.current_price || 0, pos.pair)}
                   </td>
                   {!compact && (
                     <>

@@ -41,8 +41,34 @@ export async function middleware(request: NextRequest) {
   // Protect onboarding - redirect to dashboard if already onboarded
   if (pathname === '/onboarding') {
     if (session) {
-      // Check onboarding status
-      // For now, just allow access - the page will check
+      // Check onboarding status by calling the API
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const token = session.access_token;
+      
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/v1/onboarding/status`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          // If user is already onboarded, redirect to dashboard
+          if (data.is_onboarded) {
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+          }
+        }
+        // If API fails or returns error, allow access to onboarding
+      } catch (error) {
+        // If API call fails, allow access to onboarding page
+        console.error('Failed to check onboarding status:', error);
+      }
+    } else {
+      // No session, redirect to login
+      return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 

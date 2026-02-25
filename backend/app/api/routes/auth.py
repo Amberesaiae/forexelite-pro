@@ -2,6 +2,7 @@
 Authentication Routes
 Login, Signup, Token Refresh
 """
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from supabase import create_client
@@ -30,6 +31,7 @@ class AuthResponse(BaseModel):
     access_token: str
     refresh_token: str
     user: dict
+    requires_confirmation: bool = False
 
 
 @router.post("/login")
@@ -37,19 +39,21 @@ async def login(request: LoginRequest) -> AuthResponse:
     """Authenticate user with email and password."""
     settings = get_settings()
     supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
-    
+
     try:
-        response = supabase.auth.sign_in_with_password({
-            "email": request.email,
-            "password": request.password,
-        })
-        
+        response = supabase.auth.sign_in_with_password(
+            {
+                "email": request.email,
+                "password": request.password,
+            }
+        )
+
         if not response.session:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="invalid_credentials",
             )
-        
+
         return AuthResponse(
             access_token=response.session.access_token,
             refresh_token=response.session.refresh_token,
@@ -67,22 +71,33 @@ async def signup(request: SignupRequest) -> AuthResponse:
     """Create new user account."""
     settings = get_settings()
     supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
-    
+
     try:
-        response = supabase.auth.sign_up({
-            "email": request.email,
-            "password": request.password,
-        })
-        
+        response = supabase.auth.sign_up(
+            {
+                "email": request.email,
+                "password": request.password,
+            }
+        )
+
         if not response.user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Registration failed",
             )
-        
+
+        # Handle email confirmation - session may be None
+        if response.session is None:
+            return AuthResponse(
+                access_token="",
+                refresh_token="",
+                user={"id": response.user.id, "email": response.user.email},
+                requires_confirmation=True,
+            )
+
         return AuthResponse(
-            access_token=response.session.access_token if response.session else "",
-            refresh_token=response.session.refresh_token if response.session else "",
+            access_token=response.session.access_token,
+            refresh_token=response.session.refresh_token,
             user={"id": response.user.id, "email": response.user.email},
         )
     except Exception as e:
@@ -97,16 +112,16 @@ async def refresh(request: RefreshRequest) -> AuthResponse:
     """Refresh access token using refresh token."""
     settings = get_settings()
     supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
-    
+
     try:
         response = supabase.auth.refresh_session(request.refresh_token)
-        
+
         if not response.session:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="invalid_credentials",
             )
-        
+
         return AuthResponse(
             access_token=response.session.access_token,
             refresh_token=response.session.refresh_token,
