@@ -41,6 +41,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 type SignupFormData = z.infer<typeof signupSchema>;
 
 const TICKER_SYMBOLS = ['EURUSD', 'GBPUSD', 'XAUUSD', 'USDJPY'];
+const POLL_INTERVAL = 30000; // 30 seconds to avoid rate limits
 
 function useTickerData() {
   const [tickerData, setTickerData] = useState<TickerData[]>(

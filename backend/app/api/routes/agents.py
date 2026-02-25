@@ -60,6 +60,12 @@ async def pair_agent(
     current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> PairAgentResponse:
     """Generate a new agent pairing key."""
+    import asyncio
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"Pairing request from user: {current_user.id}")
+    
     supabase = get_supabase_client()
     user_id = current_user.id
 
@@ -80,23 +86,47 @@ async def pair_agent(
         "is_connected": False,
         "broker_connection_id": request.broker_connection_id,
         "agent_name": "default",  # Required field
-        "terminal_server": "",  # Required field - will be updated by agent
-        "login": "",  # Required field - will be updated by agent
-        "password_encrypted": "",  # Required field - will be updated by agent
+        "terminal_server": "pending",  # Required field - will be updated by agent
+        "login": "pending",  # Required field - will be updated by agent
+        "password_encrypted": "pending",  # Required field - will be updated by agent
     }
 
-    response = supabase.table("mt5_agents").insert(agent_data).execute()
+    logger.info(f"Inserting agent data: {agent_data}")
 
-    if not response.data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to create agent",
+    try:
+        # Add timeout to prevent infinite hang
+        response = await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: supabase.table("mt5_agents").insert(agent_data).execute()
+            ),
+            timeout=10.0
         )
+        
+        logger.info(f"Insert response: {response}")
 
-    return PairAgentResponse(
-        agent_id=response.data[0]["id"],
-        pairing_key=raw_key,  # Only returned once!
-    )
+        if not response.data:
+            logger.error("No data returned from insert")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to create agent",
+            )
+
+        return PairAgentResponse(
+            agent_id=response.data[0]["id"],
+            pairing_key=raw_key,  # Only returned once!
+        )
+    except asyncio.TimeoutError:
+        logger.error("Database insert timed out after 10 seconds")
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Database operation timed out. Please try again.",
+        )
+    except Exception as e:
+        logger.error(f"Error creating agent: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create agent: {str(e)}",
+        )
 
 
 @router.post("/{agent_id}/heartbeat")
